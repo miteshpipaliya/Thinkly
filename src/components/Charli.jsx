@@ -3,13 +3,13 @@ import { useState, useRef, useEffect } from "react";
 const REPLY = "Charli is Currently in Developing Phase - Mitesh";
 
 export default function Charli() {
-  const [open, setOpen]     = useState(false);
-  const [msgs, setMsgs]     = useState([
-    { from:"charli", text:"Hi! I am Charli, your DDCET assistant. How can I help?" }
+  const [open, setOpen]   = useState(false);
+  const [msgs, setMsgs]   = useState([
+    { from:"charli", text:"Hi! I am Charli, your DDCET AI assistant. Ask me anything!" }
   ]);
-  const [input, setInput]   = useState("");
+  const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
-  const bottomRef           = useRef(null);
+  const bottomRef = useRef(null);
 
   useEffect(() => {
     if (open) bottomRef.current?.scrollIntoView({ behavior:"smooth" });
@@ -29,71 +29,50 @@ export default function Charli() {
 
   return (
     <>
-      {/* Floating button — red AI style */}
-      <button
-        onClick={() => setOpen(o => !o)}
-        style={{
-          position:"fixed", bottom:24, right:24, zIndex:999,
-          width:56, height:56, borderRadius:"50%",
-          background:"linear-gradient(135deg,#ef4444,#dc2626)",
-          border:"none", cursor:"pointer",
-          boxShadow:"0 4px 24px rgba(239,68,68,0.5)",
-          display:"flex", alignItems:"center", justifyContent:"center",
-          fontSize:26, transition:"transform 0.2s",
-          transform: open ? "scale(0.9)" : "scale(1)",
-        }}
-        title="Chat with Charli"
-      >
+      {/* Floating button */}
+      <button onClick={() => setOpen(o => !o)}
+        style={{ position:"fixed", bottom:24, right:24, zIndex:999, width:60, height:60, borderRadius:"50%", background:"linear-gradient(135deg,#ef4444,#dc2626)", border:"none", cursor:"pointer", boxShadow:"0 4px 28px rgba(239,68,68,0.55)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:28, transition:"transform 0.2s", transform:open?"scale(0.9)":"scale(1)" }}
+        title="Chat with Charli">
         {open ? "✕" : "🤖"}
       </button>
 
-      {/* Chat window */}
+      {/* Chat window — half screen height */}
       {open && (
-        <div style={{
-          position:"fixed", bottom:92, right:24, zIndex:998,
-          width:320, height:420, background:"#0d0d1a",
-          border:"1px solid rgba(239,68,68,0.3)",
-          borderRadius:18, display:"flex", flexDirection:"column",
-          boxShadow:"0 8px 40px rgba(0,0,0,0.6)",
-          overflow:"hidden",
-        }}>
+        <div style={{ position:"fixed", bottom:96, right:24, zIndex:998, width:"min(480px, calc(100vw - 48px))", height:"50vh", minHeight:360, background:"#0d0d1a", border:"1px solid rgba(239,68,68,0.3)", borderRadius:20, display:"flex", flexDirection:"column", boxShadow:"0 12px 50px rgba(0,0,0,0.7)", overflow:"hidden" }}>
+
           {/* Header */}
-          <div style={{
-            background:"linear-gradient(135deg,#ef4444,#dc2626)",
-            padding:"14px 18px", display:"flex", alignItems:"center", gap:10,
-          }}>
-            <div style={{ fontSize:22 }}>🤖</div>
-            <div>
-              <div style={{ fontWeight:800, color:"#fff", fontSize:15 }}>Charli</div>
-              <div style={{ fontSize:10, color:"rgba(255,255,255,0.7)" }}>DDCET AI Assistant</div>
+          <div style={{ background:"linear-gradient(135deg,#ef4444,#dc2626)", padding:"16px 20px", display:"flex", alignItems:"center", gap:12, flexShrink:0 }}>
+            <div style={{ fontSize:26 }}>🤖</div>
+            <div style={{ flex:1 }}>
+              <div style={{ fontWeight:800, color:"#fff", fontSize:17 }}>Charli</div>
+              <div style={{ fontSize:11, color:"rgba(255,255,255,0.75)" }}>DDCET AI Assistant · Powered by Ranklify</div>
             </div>
-            <div style={{ marginLeft:"auto", width:8, height:8, borderRadius:"50%", background:"#4ade80", boxShadow:"0 0 6px #4ade80" }} />
+            <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+              <div style={{ width:8, height:8, borderRadius:"50%", background:"#4ade80", boxShadow:"0 0 8px #4ade80" }} />
+              <span style={{ fontSize:11, color:"rgba(255,255,255,0.7)" }}>Online</span>
+            </div>
           </div>
 
           {/* Messages */}
-          <div style={{ flex:1, overflowY:"auto", padding:"14px 14px 8px" }}>
+          <div style={{ flex:1, overflowY:"auto", padding:"16px 16px 8px" }}>
             {msgs.map((m, i) => (
-              <div key={i} style={{
-                display:"flex", justifyContent: m.from==="user" ? "flex-end" : "flex-start",
-                marginBottom:10,
-              }}>
-                {m.from === "charli" && (
-                  <div style={{ width:26, height:26, borderRadius:"50%", background:"linear-gradient(135deg,#ef4444,#dc2626)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, marginRight:7, flexShrink:0, alignSelf:"flex-end" }}>🤖</div>
+              <div key={i} style={{ display:"flex", justifyContent:m.from==="user"?"flex-end":"flex-start", marginBottom:12 }}>
+                {m.from==="charli" && (
+                  <div style={{ width:30, height:30, borderRadius:"50%", background:"linear-gradient(135deg,#ef4444,#dc2626)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:15, marginRight:8, flexShrink:0, alignSelf:"flex-end" }}>🤖</div>
                 )}
-                <div style={{
-                  maxWidth:"78%", padding:"9px 13px", borderRadius: m.from==="user" ? "14px 2px 14px 14px" : "2px 14px 14px 14px",
-                  background: m.from==="user" ? "linear-gradient(135deg,#4f8ef7,#a855f7)" : "rgba(255,255,255,0.06)",
-                  color:"#e2e2f0", fontSize:13, lineHeight:1.5,
-                }}>
+                <div style={{ maxWidth:"75%", padding:"11px 15px", borderRadius:m.from==="user"?"16px 3px 16px 16px":"3px 16px 16px 16px", background:m.from==="user"?"linear-gradient(135deg,#4f8ef7,#a855f7)":"rgba(255,255,255,0.07)", color:"#e2e2f0", fontSize:14, lineHeight:1.55 }}>
                   {m.text}
                 </div>
+                {m.from==="user" && (
+                  <div style={{ width:30, height:30, borderRadius:"50%", background:"linear-gradient(135deg,#4f8ef7,#a855f7)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, marginLeft:8, flexShrink:0, alignSelf:"flex-end", fontWeight:700, color:"#fff" }}>U</div>
+                )}
               </div>
             ))}
             {typing && (
-              <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:10 }}>
-                <div style={{ width:26, height:26, borderRadius:"50%", background:"linear-gradient(135deg,#ef4444,#dc2626)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13 }}>🤖</div>
-                <div style={{ background:"rgba(255,255,255,0.06)", borderRadius:"2px 14px 14px 14px", padding:"9px 14px" }}>
-                  <span style={{ color:"#888", fontSize:18, letterSpacing:3 }}>•••</span>
+              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
+                <div style={{ width:30, height:30, borderRadius:"50%", background:"linear-gradient(135deg,#ef4444,#dc2626)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:15 }}>🤖</div>
+                <div style={{ background:"rgba(255,255,255,0.07)", borderRadius:"3px 16px 16px 16px", padding:"12px 16px" }}>
+                  <span style={{ color:"#888", fontSize:20, letterSpacing:4 }}>•••</span>
                 </div>
               </div>
             )}
@@ -101,24 +80,12 @@ export default function Charli() {
           </div>
 
           {/* Input */}
-          <div style={{ padding:"10px 12px", borderTop:"1px solid rgba(255,255,255,0.06)", display:"flex", gap:8 }}>
-            <input
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && send()}
-              placeholder="Ask Charli anything…"
-              style={{
-                flex:1, background:"rgba(255,255,255,0.05)", border:"1.5px solid rgba(255,255,255,0.08)",
-                borderRadius:9, padding:"9px 12px", color:"#e2e2f0", fontSize:13,
-                outline:"none", fontFamily:"inherit",
-              }}
-              onFocus={e=>{e.target.style.borderColor="#ef4444"}}
-              onBlur={e=>{e.target.style.borderColor="rgba(255,255,255,0.08)"}}
-            />
-            <button onClick={send} style={{
-              padding:"9px 14px", borderRadius:9, border:"none", cursor:"pointer",
-              background:"linear-gradient(135deg,#ef4444,#dc2626)", color:"#fff", fontSize:16,
-            }}>➤</button>
+          <div style={{ padding:"12px 14px", borderTop:"1px solid rgba(255,255,255,0.07)", display:"flex", gap:10, flexShrink:0, background:"rgba(0,0,0,0.2)" }}>
+            <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()}
+              placeholder="Ask Charli anything about DDCET…"
+              style={{ flex:1, background:"rgba(255,255,255,0.07)", border:"1.5px solid rgba(255,255,255,0.1)", borderRadius:10, padding:"11px 14px", color:"#e2e2f0", fontSize:14, outline:"none", fontFamily:"inherit" }}
+              onFocus={e=>{e.target.style.borderColor="#ef4444"}} onBlur={e=>{e.target.style.borderColor="rgba(255,255,255,0.1)"}} />
+            <button onClick={send} style={{ padding:"11px 18px", borderRadius:10, border:"none", cursor:"pointer", background:"linear-gradient(135deg,#ef4444,#dc2626)", color:"#fff", fontSize:18, flexShrink:0 }}>➤</button>
           </div>
         </div>
       )}
