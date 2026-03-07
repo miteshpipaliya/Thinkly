@@ -99,16 +99,70 @@ export default function Explore() {
                 );
               })}
 
-              {/* Follow button */}
-              <button
-                disabled={fb.disabled}
-                onClick={() => !fb.disabled && sendFollowRequest(u.id)}
-                style={{ marginTop:14, width:"100%", padding:"10px", borderRadius:9, border:`2px solid ${fb.col}44`, cursor: fb.disabled ? "default":"pointer", background:`${fb.col}15`, color:fb.col, fontSize:13, fontWeight:800, fontFamily:"inherit", opacity:fb.disabled ? 0.75 : 1, transition:"all 0.2s", letterSpacing:"0.02em" }}
-                onMouseEnter={e=>{ if(!fb.disabled){ e.currentTarget.style.background=`${fb.col}28`; e.currentTarget.style.transform="translateY(-1px)"; } }}
-                onMouseLeave={e=>{ if(!fb.disabled){ e.currentTarget.style.background=`${fb.col}15`; e.currentTarget.style.transform="none"; } }}
-              >
-                {fb.label}
-              </button>
+              {/* REQUEST button */}
+              {(() => {
+                const sent     = fb.label.includes("Pending");
+                const accepted = fb.label.includes("Following");
+                const locked   = !u.isReal;
+
+                return (
+                  <button
+                    disabled={fb.disabled}
+                    onClick={() => !fb.disabled && sendFollowRequest(u.id)}
+                    style={{
+                      marginTop: 16,
+                      width: "100%",
+                      padding: "11px 0",
+                      borderRadius: 10,
+                      border: accepted ? "2px solid #4ade80"
+                            : sent     ? "2px solid #fbbf24"
+                            : locked   ? "2px solid rgba(255,255,255,0.15)"
+                            :            "2px solid rgba(255,255,255,0.25)",
+                      cursor: fb.disabled ? "default" : "pointer",
+                      background: accepted ? "rgba(74,222,128,0.12)"
+                                : sent     ? "rgba(251,191,36,0.12)"
+                                : locked   ? "rgba(255,255,255,0.07)"
+                                :            "#ffffff",
+                      color: accepted ? "#4ade80"
+                           : sent     ? "#fbbf24"
+                           : locked   ? "rgba(255,255,255,0.35)"
+                           :            "#000000",
+                      fontSize: 13,
+                      fontWeight: 900,
+                      fontFamily: "inherit",
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 8,
+                      transition: "all 0.2s ease",
+                      opacity: 1,
+                    }}
+                    onMouseEnter={e => {
+                      if (!fb.disabled && !locked) {
+                        e.currentTarget.style.background = "#f0f0f0";
+                        e.currentTarget.style.transform = "scale(1.02)";
+                        e.currentTarget.style.boxShadow = "0 4px 16px rgba(255,255,255,0.15)";
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      if (!fb.disabled && !locked) {
+                        e.currentTarget.style.background = accepted ? "rgba(74,222,128,0.12)" : sent ? "rgba(251,191,36,0.12)" : "#ffffff";
+                        e.currentTarget.style.transform = "none";
+                        e.currentTarget.style.boxShadow = "none";
+                      }
+                    }}
+                  >
+                    <span style={{ fontSize: 15 }}>
+                      {accepted ? "✓" : sent ? "⏳" : "🔒"}
+                    </span>
+                    <span>
+                      {accepted ? "Following" : sent ? "Request Sent" : locked ? "Private" : "Request"}
+                    </span>
+                  </button>
+                );
+              })()}
             </div>
           );
         })}
