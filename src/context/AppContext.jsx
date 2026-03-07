@@ -8,7 +8,6 @@ export function AppProvider({ children }) {
   const [results, setResults]   = useState(() => JSON.parse(localStorage.getItem("ranklify_results") || "[]"));
   const [checklist, setChecklist] = useState(() => JSON.parse(localStorage.getItem("ranklify_checklist") || "{}"));
 
-  // Persist
   useEffect(() => { localStorage.setItem("ranklify_user",      JSON.stringify(user));      }, [user]);
   useEffect(() => { localStorage.setItem("ranklify_users",     JSON.stringify(users));     }, [users]);
   useEffect(() => { localStorage.setItem("ranklify_results",   JSON.stringify(results));   }, [results]);
@@ -39,9 +38,33 @@ export function AppProvider({ children }) {
   }
 
   function addResult(result) {
-    const r = { ...result, userId: user?.id, userName: user?.name, id: Date.now() };
+    const r = {
+      ...result,
+      userId: user?.id,
+      userName: user?.name,
+      id: Date.now(),
+      date: new Date().toLocaleDateString("en-IN"),
+    };
     setResults(prev => [r, ...prev]);
     return r;
+  }
+
+  // Add manual mock result (coaching/external)
+  function addMockResult(result) {
+    const r = {
+      ...result,
+      userId: user?.id,
+      userName: user?.name,
+      id: Date.now(),
+      isMock: true,
+    };
+    setResults(prev => [r, ...prev]);
+    return r;
+  }
+
+  // Delete a mock result by id
+  function deleteMockResult(id) {
+    setResults(prev => prev.filter(r => r.id !== id));
   }
 
   function toggleChecklist(key) {
@@ -51,7 +74,12 @@ export function AppProvider({ children }) {
   const myResults = results.filter(r => r.userId === user?.id);
 
   return (
-    <AppContext.Provider value={{ user, users, results, myResults, checklist, signup, login, logout, completeSetup, addResult, toggleChecklist }}>
+    <AppContext.Provider value={{
+      user, users, results, myResults, checklist,
+      signup, login, logout, completeSetup,
+      addResult, addMockResult, deleteMockResult,
+      toggleChecklist
+    }}>
       {children}
     </AppContext.Provider>
   );
