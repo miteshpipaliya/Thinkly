@@ -1,92 +1,67 @@
 import { useState, useEffect, useRef } from "react";
 import { QUESTION_BANK, shuffle } from "../data/subjects";
 import { useApp } from "../context/AppContext";
-import Icon from "../components/Icon";
 
-// ── PDF Generator (pure JS, no library needed) ──────────────────────────────
+// PDF generator
 function downloadPDF(result, user) {
-  const { jsPDF } = window.jspdf || {};
-  // Fallback: generate printable HTML
   const html = `<!DOCTYPE html>
-<html>
-<head>
-<title>Ranklify Result – ${user?.name}</title>
+<html><head><title>Ranklify Result – ${user?.name}</title>
 <style>
-  body { font-family: Arial, sans-serif; padding: 32px; color: #222; max-width: 800px; margin: 0 auto; }
-  h1 { color: #4f8ef7; font-size: 22px; }
-  h2 { font-size: 15px; color: #444; margin-top: 24px; }
-  table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
-  th { background: #4f8ef7; color: #fff; padding: 8px 12px; text-align: left; }
-  td { padding: 8px 12px; border-bottom: 1px solid #eee; }
-  tr:nth-child(even) td { background: #f9f9f9; }
-  .correct { color: #16a34a; }
-  .wrong { color: #dc2626; }
-  .stat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin: 16px 0; }
-  .stat { background: #f3f4f6; border-radius: 8px; padding: 14px; text-align: center; }
-  .stat-n { font-size: 24px; font-weight: 800; color: #4f8ef7; }
-  .stat-l { font-size: 11px; color: #666; margin-top: 4px; }
-  .logo { font-size: 28px; font-weight: 900; color: #4f8ef7; }
-</style>
-</head>
-<body>
-<div class="logo">Ranklify</div>
-<p style="color:#888;font-size:12px;margin-top:2px">DDCET Rank Booster</p>
-<h1>Mock Test Result Report</h1>
+  body{font-family:Arial,sans-serif;padding:32px;color:#222;max-width:800px;margin:0 auto}
+  h1{color:#4f8ef7;font-size:22px}h2{font-size:15px;color:#444;margin-top:24px}
+  table{width:100%;border-collapse:collapse;margin-top:10px;font-size:12px}
+  th{background:#4f8ef7;color:#fff;padding:8px 12px;text-align:left}
+  td{padding:8px 12px;border-bottom:1px solid #eee}
+  .correct{color:#16a34a}.wrong{color:#dc2626}
+  .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0}
+  .stat{background:#f3f4f6;border-radius:8px;padding:14px;text-align:center}
+  .stat-n{font-size:24px;font-weight:800;color:#4f8ef7}.stat-l{font-size:11px;color:#666;margin-top:4px}
+  .logo{font-size:28px;font-weight:900;color:#4f8ef7}
+  .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;background:#e0f2fe;color:#0369a1}
+</style></head><body>
+<div class="logo">⚡ Ranklify</div>
+<p style="color:#888;font-size:12px;margin-top:2px">DDCET Rank Booster — Same Pattern. Same Time. Same Marking.</p>
+<h1>${result.testType === "practice" ? "Practice Test" : "DDCET Mock Test"} Result Report</h1>
 <table style="width:auto;margin-bottom:16px">
-  <tr><td><b>Student Name</b></td><td style="padding-left:24px">${user?.name}</td></tr>
-  <tr><td><b>Branch</b></td><td style="padding-left:24px">${user?.profile?.branch || "—"}</td></tr>
+  <tr><td><b>Student</b></td><td style="padding-left:24px">${user?.name}</td></tr>
+  <tr><td><b>Branch</b></td><td style="padding-left:24px">${user?.profile?.branch||"—"}</td></tr>
   <tr><td><b>Date</b></td><td style="padding-left:24px">${new Date().toLocaleDateString("en-IN",{day:"2-digit",month:"long",year:"numeric"})}</td></tr>
-  <tr><td><b>College Pref 1</b></td><td style="padding-left:24px">${user?.profile?.college1 || "—"}</td></tr>
+  <tr><td><b>Test Type</b></td><td style="padding-left:24px">${result.testType==="practice"?"Practice (25 Qs / 30 min)":"Real DDCET Pattern (100 Qs / 120 min)"}</td></tr>
 </table>
 <div class="stat-grid">
-  <div class="stat"><div class="stat-n">${result.score}</div><div class="stat-l">Total Score</div></div>
-  <div class="stat"><div class="stat-n">${result.correct}</div><div class="stat-l">Correct Answers</div></div>
-  <div class="stat"><div class="stat-n">${result.wrong}</div><div class="stat-l">Wrong Answers</div></div>
-  <div class="stat"><div class="stat-n">${result.unanswered}</div><div class="stat-l">Unanswered</div></div>
+  <div class="stat"><div class="stat-n">${result.score}</div><div class="stat-l">Score /200</div></div>
+  <div class="stat"><div class="stat-n">${result.correct}</div><div class="stat-l">Correct (+2)</div></div>
+  <div class="stat"><div class="stat-n">${result.wrong}</div><div class="stat-l">Wrong (−0.5)</div></div>
+  <div class="stat"><div class="stat-n">${result.unanswered}</div><div class="stat-l">Unattempted</div></div>
   <div class="stat"><div class="stat-n">${result.accuracy}%</div><div class="stat-l">Accuracy</div></div>
   <div class="stat"><div class="stat-n">${Math.floor(result.timeTaken/60)}m${result.timeTaken%60}s</div><div class="stat-l">Time Taken</div></div>
 </div>
-<h2>Marking Scheme</h2>
-<p style="font-size:12px">Correct: +2.0 &nbsp;|&nbsp; Wrong: −2.5 &nbsp;|&nbsp; Unanswered: 0</p>
+<p style="font-size:12px;background:#f0fdf4;padding:10px;border-radius:6px">Marking: ✅ Correct = +2 &nbsp;|&nbsp; ❌ Wrong = −0.5 &nbsp;|&nbsp; ⭕ Unattempted = 0</p>
 <h2>Question Review</h2>
-<table>
-<thead><tr><th>#</th><th>Question</th><th>Correct Answer</th><th>Your Answer</th><th>Marks</th></tr></thead>
-<tbody>
-${result.scored.map((q, i) => `
-  <tr>
-    <td>${i+1}</td>
-    <td>${q.q}</td>
-    <td class="correct">${q.ans}</td>
-    <td class="${q.userAns === q.ans ? "correct" : q.userAns ? "wrong" : ""}">${q.userAns || "—"}</td>
-    <td>${!q.userAns ? "0" : q.userAns === q.ans ? "+2.0" : "−2.5"}</td>
-  </tr>`).join("")}
-</tbody>
-</table>
-<p style="margin-top:32px;color:#aaa;font-size:11px;text-align:center">Generated by Ranklify · DDCET Rank Booster · ranklify.netlify.app</p>
-</body>
-</html>`;
-
-  const w = window.open("", "_blank");
-  w.document.write(html);
-  w.document.close();
-  w.print();
+<table><thead><tr><th>#</th><th>Question</th><th>Correct Answer</th><th>Your Answer</th><th>Marks</th></tr></thead><tbody>
+${result.scored.map((q,i)=>`<tr><td>${i+1}</td><td>${q.q}</td><td class="correct">${q.ans}</td><td class="${q.userAns===q.ans?"correct":q.userAns?"wrong":""}">${q.userAns||"—"}</td><td>${!q.userAns?"0":q.userAns===q.ans?"+2":"−0.5"}</td></tr>`).join("")}
+</tbody></table>
+<p style="margin-top:32px;color:#aaa;font-size:11px;text-align:center">Generated by Ranklify · DDCET Rank Booster</p>
+</body></html>`;
+  const w = window.open("","_blank");
+  w.document.write(html); w.document.close(); w.print();
 }
 
-// ── Mock test engine ─────────────────────────────────────────────────────────
-const TOTAL_TIME = 150 * 60; // 150 minutes
+const MOCK_TIME     = 120 * 60; // 120 minutes — real DDCET
+const PRACTICE_TIME = 30  * 60; // 30 minutes  — practice
 
 export default function MockTest() {
-  const { user, addResult } = useApp();
-  const [phase, setPhase] = useState("intro"); // intro | running | result
+  const { user, addResult, darkMode } = useApp();
+  const [phase, setPhase]       = useState("intro");
+  const [testType, setTestType] = useState("mock"); // "mock" | "practice"
   const [questions, setQuestions] = useState([]);
-  const [answers, setAnswers] = useState({});
-  const [curr, setCurr]     = useState(0);
-  const [timeLeft, setTimeLeft] = useState(TOTAL_TIME);
-  const [result, setResult] = useState(null);
+  const [answers, setAnswers]   = useState({});
+  const [curr, setCurr]         = useState(0);
+  const [timeLeft, setTimeLeft] = useState(MOCK_TIME);
+  const [result, setResult]     = useState(null);
   const [startedAt, setStartedAt] = useState(null);
   const timerRef = useRef(null);
 
-  // Timer
   useEffect(() => {
     if (phase !== "running") return;
     timerRef.current = setInterval(() => {
@@ -98,15 +73,16 @@ export default function MockTest() {
     return () => clearInterval(timerRef.current);
   }, [phase]);
 
-  function startMock() {
-    // Use all available questions, pad with repeats if needed
+  function startTest(type) {
+    setTestType(type);
+    const totalQ = type === "practice" ? 25 : 100;
     const base = shuffle([...QUESTION_BANK]);
     let pool = [...base];
-    while (pool.length < 50) pool = [...pool, ...base]; // extend to at least 50
-    setQuestions(pool.slice(0, 50)); // 50 for demo (200 needs 200 unique Qs)
+    while (pool.length < totalQ) pool = [...pool, ...base];
+    setQuestions(pool.slice(0, totalQ));
     setAnswers({});
     setCurr(0);
-    setTimeLeft(TOTAL_TIME);
+    setTimeLeft(type === "practice" ? PRACTICE_TIME : MOCK_TIME);
     setStartedAt(Date.now());
     setPhase("running");
   }
@@ -117,65 +93,105 @@ export default function MockTest() {
     const scored = questions.map((q, i) => ({ ...q, userAns: answers[i] }));
     let score = 0, correct = 0, wrong = 0, unanswered = 0;
     scored.forEach(q => {
-      if (!q.userAns) { unanswered++; }
-      else if (q.userAns === q.ans) { correct++; score += 2; }
-      else { wrong++; score -= 2.5; }
+      if (!q.userAns)            { unanswered++; }
+      else if (q.userAns===q.ans){ correct++; score += 2; }
+      else                       { wrong++;   score -= 0.5; }
     });
-    score = Math.round(score * 10) / 10;
+    score = Math.max(0, Math.round(score * 10) / 10);
     const accuracy = Math.round(correct / questions.length * 100);
-    const r = { title: "DDCET Mock Test", isMock: true, score, correct, wrong, unanswered, accuracy, timeTaken, scored, questions: questions.length };
+    const title = testType === "practice" ? "Practice Test (25 Qs)" : "DDCET Mock Test (100 Qs)";
+    const r = { title, isMock: true, testType, score, correct, wrong, unanswered, accuracy, timeTaken, scored, questions: questions.length };
     const saved = addResult(r);
     setResult({ ...r, ...saved });
     setPhase("result");
   }
 
   function fmt(s) {
-    const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sc = s%60;
-    if (h > 0) return `${h}:${String(m).padStart(2,"0")}:${String(sc).padStart(2,"0")}`;
+    const m = Math.floor(s / 60), sc = s % 60;
     return `${String(m).padStart(2,"0")}:${String(sc).padStart(2,"0")}`;
   }
 
-  const timerPct = timeLeft / TOTAL_TIME * 100;
-  const timerColor = timerPct > 50 ? "#4ade80" : timerPct > 20 ? "#fbbf24" : "#f87171";
+  const TOTAL_TIME  = testType === "practice" ? PRACTICE_TIME : MOCK_TIME;
+  const timerPct    = timeLeft / TOTAL_TIME * 100;
+  const timerColor  = timerPct > 50 ? "#4ade80" : timerPct > 20 ? "#fbbf24" : "#f87171";
 
-  const s = {
-    card: { background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:24, marginBottom:16 },
-    btn: (v="primary") => ({ padding:"10px 22px", borderRadius:9, border:"none", cursor:"pointer", fontSize:13, fontWeight:600, background:v==="primary"?"linear-gradient(135deg,#4f8ef7,#a855f7)":v==="danger"?"rgba(239,68,68,0.15)":"rgba(255,255,255,0.06)", color:v==="primary"?"#fff":v==="danger"?"#f87171":"#aaa", fontFamily:"inherit", transition:"opacity 0.2s" }),
-  };
+  const txt    = darkMode ? "#e2e2f0" : "#111";
+  const sub    = darkMode ? "#666"    : "#888";
+  const cardBg = darkMode ? "rgba(255,255,255,0.03)"  : "#fff";
+  const cardBr = darkMode ? "rgba(255,255,255,0.07)"  : "#e5e7eb";
+  const btn = (v="primary") => ({ padding:"10px 22px", borderRadius:9, border:"none", cursor:"pointer", fontSize:13, fontWeight:600,
+    background: v==="primary"?"linear-gradient(135deg,#4f8ef7,#a855f7)":v==="danger"?"rgba(239,68,68,0.15)":darkMode?"rgba(255,255,255,0.06)":"#f3f4f6",
+    color: v==="primary"?"#fff":v==="danger"?"#f87171":txt, fontFamily:"inherit" });
 
   // ── INTRO ──────────────────────────────────────────────────────────────────
   if (phase === "intro") return (
     <div>
-      <div style={{ fontSize:22, fontWeight:800, color:"#e2e2f0", marginBottom:4 }}>Mock Tests</div>
-      <div style={{ color:"#666", fontSize:13, marginBottom:24 }}>Simulate the real DDCET exam environment.</div>
-      <div style={s.card}>
-        <div style={{ fontSize:18, fontWeight:700, color:"#e2e2f0", marginBottom:20 }}>🎯 DDCET Full Mock Test</div>
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))", gap:12, marginBottom:24 }}>
-          {[
-            { l:"Questions", v:"50 MCQs*",    c:"#4f8ef7" },
-            { l:"Duration",  v:"150 Minutes", c:"#22d3ee" },
-            { l:"Correct",   v:"+2.0 marks",  c:"#4ade80" },
-            { l:"Wrong",     v:"−2.5 marks",  c:"#f87171" },
-            { l:"Unanswered",v:"0 marks",      c:"#fbbf24" },
-            { l:"Subjects",  v:"All 6",        c:"#a855f7" },
-          ].map(i => (
-            <div key={i.l} style={{ background:`${i.c}11`, border:`1px solid ${i.c}22`, borderRadius:10, padding:"14px 16px", textAlign:"center" }}>
-              <div style={{ fontSize:17, fontWeight:800, color:i.c }}>{i.v}</div>
-              <div style={{ fontSize:11, color:"#666", marginTop:3 }}>{i.l}</div>
+      <div style={{ fontSize:22, fontWeight:800, color:txt, marginBottom:4 }}>Mock Tests</div>
+      <div style={{ color:sub, fontSize:13, marginBottom:24 }}>DDCET Same Pattern • Same Time • Same Marking</div>
+
+      {/* Marketing banner */}
+      <div style={{ background:"linear-gradient(135deg,rgba(79,142,247,0.12),rgba(168,85,247,0.12))", border:"1px solid rgba(79,142,247,0.2)", borderRadius:14, padding:"16px 22px", marginBottom:24, display:"flex", alignItems:"center", gap:14 }}>
+        <div style={{ fontSize:32 }}>🎯</div>
+        <div>
+          <div style={{ fontWeight:800, color:txt, fontSize:15 }}>DDCET Same Pattern Mock Tests</div>
+          <div style={{ color:sub, fontSize:12, marginTop:2 }}>Same Time · Same Marking · 100 Questions · Exactly like real exam</div>
+        </div>
+      </div>
+
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:24 }}>
+        {/* Real DDCET Mock */}
+        <div style={{ background:cardBg, border:"2px solid rgba(79,142,247,0.3)", borderRadius:16, padding:28 }}>
+          <div style={{ fontSize:28, marginBottom:12 }}>📝</div>
+          <div style={{ fontSize:17, fontWeight:800, color:txt, marginBottom:6 }}>Real DDCET Mock</div>
+          <div style={{ color:sub, fontSize:12, lineHeight:1.7, marginBottom:18 }}>
+            Exactly like the real exam.<br/>
+            100 questions · 120 minutes<br/>
+            +2 correct · −0.5 wrong
+          </div>
+          <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:20 }}>
+            {["100 MCQs","120 Min","200 Marks","+2/−0.5"].map(t=>(
+              <span key={t} style={{ padding:"3px 10px", borderRadius:20, fontSize:11, fontWeight:600, background:"rgba(79,142,247,0.12)", color:"#7aadff", border:"1px solid rgba(79,142,247,0.2)" }}>{t}</span>
+            ))}
+          </div>
+          <button onClick={()=>startTest("mock")} style={{ ...btn("primary"), width:"100%", padding:"12px" }}>
+            Start DDCET Mock →
+          </button>
+        </div>
+
+        {/* Practice Test */}
+        <div style={{ background:cardBg, border:`2px solid rgba(168,85,247,0.3)`, borderRadius:16, padding:28 }}>
+          <div style={{ fontSize:28, marginBottom:12 }}>⚡</div>
+          <div style={{ fontSize:17, fontWeight:800, color:txt, marginBottom:6 }}>Practice Test</div>
+          <div style={{ color:sub, fontSize:12, lineHeight:1.7, marginBottom:18 }}>
+            Quick practice session.<br/>
+            25 questions · 30 minutes<br/>
+            Unlimited attempts
+          </div>
+          <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:20 }}>
+            {["25 MCQs","30 Min","Unlimited","Quick"].map(t=>(
+              <span key={t} style={{ padding:"3px 10px", borderRadius:20, fontSize:11, fontWeight:600, background:"rgba(168,85,247,0.12)", color:"#c084fc", border:"1px solid rgba(168,85,247,0.2)" }}>{t}</span>
+            ))}
+          </div>
+          <button onClick={()=>startTest("practice")} style={{ ...btn(), width:"100%", padding:"12px", background:"linear-gradient(135deg,#a855f7,#6366f1)", color:"#fff" }}>
+            Start Practice →
+          </button>
+        </div>
+      </div>
+
+      {/* Marking scheme */}
+      <div style={{ background:cardBg, border:`1px solid ${cardBr}`, borderRadius:14, padding:22 }}>
+        <div style={{ fontSize:14, fontWeight:700, color:txt, marginBottom:14 }}>📋 DDCET Official Marking Scheme</div>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:10, marginBottom:14 }}>
+          {[{l:"✅ Correct",v:"+2 Marks",c:"#4ade80"},{l:"❌ Wrong",v:"−0.5 Marks",c:"#f87171"},{l:"⭕ Unattempted",v:"0 Marks",c:"#fbbf24"}].map(s=>(
+            <div key={s.l} style={{ textAlign:"center", background:`${s.c}11`, border:`1px solid ${s.c}22`, borderRadius:10, padding:"14px 10px" }}>
+              <div style={{ fontSize:18, fontWeight:800, color:s.c }}>{s.v}</div>
+              <div style={{ fontSize:11, color:sub, marginTop:4 }}>{s.l}</div>
             </div>
           ))}
         </div>
-        <div style={{ background:"rgba(251,191,36,0.06)", border:"1px solid rgba(251,191,36,0.15)", borderRadius:10, padding:"14px 18px", marginBottom:24 }}>
-          <div style={{ color:"#fbbf24", fontWeight:700, marginBottom:8, fontSize:13 }}>📋 Instructions</div>
-          <div style={{ color:"#aaa", fontSize:12.5, lineHeight:1.9 }}>
-            • Timer starts immediately and cannot be paused<br/>
-            • You can navigate to any question using the Question Palette<br/>
-            • The exam auto-submits when the timer ends<br/>
-            • Download your result PDF after submission<br/>
-            • *50 questions in demo; expand QUESTION_BANK to reach 200
-          </div>
+        <div style={{ fontSize:12, color:sub, background:darkMode?"rgba(255,255,255,0.03)":"#f9fafb", borderRadius:9, padding:"10px 14px" }}>
+          <b style={{ color:txt }}>Example:</b> 60 correct × 2 = 120, minus 20 wrong × 0.5 = 10 → <b style={{ color:"#4ade80" }}>Final Score: 110 / 200</b>
         </div>
-        <button style={s.btn("primary")} onClick={startMock}>⚡ Start Mock Test</button>
       </div>
     </div>
   );
@@ -185,38 +201,38 @@ export default function MockTest() {
     const q = questions[curr];
     const userAns = answers[curr];
     const answered = Object.keys(answers).length;
-    const marked = Object.entries(answers).filter(([,v])=>v).length;
 
     return (
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 240px", gap:16, alignItems:"start" }}>
-        {/* Left: Question */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 220px", gap:16, alignItems:"start" }}>
         <div>
           {/* Top bar */}
-          <div style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"12px 18px", marginBottom:14, display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, flexWrap:"wrap" }}>
-            <div style={{ fontSize:13, color:"#aaa" }}>Q {curr+1} / {questions.length}</div>
+          <div style={{ background:cardBg, border:`1px solid ${cardBr}`, borderRadius:12, padding:"12px 18px", marginBottom:14, display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, flexWrap:"wrap" }}>
+            <div style={{ fontSize:13, color:sub }}>
+              {testType==="practice"?"⚡ Practice":"📝 DDCET Mock"} · Q {curr+1}/{questions.length}
+            </div>
             <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-              <div style={{ width:140, height:5, background:"rgba(255,255,255,0.06)", borderRadius:3, overflow:"hidden" }}>
+              <div style={{ width:120, height:5, background:darkMode?"rgba(255,255,255,0.06)":"#eee", borderRadius:3, overflow:"hidden" }}>
                 <div style={{ height:"100%", width:`${timerPct}%`, background:`linear-gradient(90deg,${timerColor},${timerColor}99)`, transition:"width 1s linear" }} />
               </div>
-              <span style={{ fontFamily:"'JetBrains Mono',monospace", fontWeight:700, color:timerColor, fontSize:16, minWidth:80, textAlign:"right" }}>{fmt(timeLeft)}</span>
+              <span style={{ fontFamily:"'JetBrains Mono',monospace", fontWeight:700, color:timerColor, fontSize:16, minWidth:70 }}>{fmt(timeLeft)}</span>
             </div>
-            <div style={{ fontSize:12, color:"#555" }}>{answered}/{questions.length} answered</div>
+            <div style={{ fontSize:12, color:sub }}>{answered}/{questions.length} answered</div>
           </div>
 
-          {/* Question card */}
-          <div style={s.card}>
-            <div style={{ display:"flex", gap:8, marginBottom:14, flexWrap:"wrap" }}>
+          {/* Question */}
+          <div style={{ background:cardBg, border:`1px solid ${cardBr}`, borderRadius:14, padding:24, marginBottom:14 }}>
+            <div style={{ display:"flex", gap:8, marginBottom:14 }}>
               <span style={{ padding:"3px 10px", borderRadius:20, fontSize:11, fontWeight:600, background:"rgba(79,142,247,0.12)", color:"#7aadff", border:"1px solid rgba(79,142,247,0.2)" }}>{q.subject}</span>
-              <span style={{ padding:"3px 10px", borderRadius:20, fontSize:11, background:"rgba(255,255,255,0.05)", color:"#666" }}>{q.chapter}</span>
+              <span style={{ padding:"3px 10px", borderRadius:20, fontSize:11, background:darkMode?"rgba(255,255,255,0.05)":"#f3f4f6", color:sub }}>{q.chapter}</span>
             </div>
-            <div style={{ fontSize:16, fontWeight:600, color:"#e2e2f0", marginBottom:22, lineHeight:1.7 }}>{q.q}</div>
+            <div style={{ fontSize:16, fontWeight:600, color:txt, marginBottom:22, lineHeight:1.7 }}>{q.q}</div>
             {q.opts.map((opt, i) => {
-              let bg = "rgba(255,255,255,0.03)", border = "rgba(255,255,255,0.08)", color = "#ccc";
-              if (userAns === opt) { bg = "rgba(79,142,247,0.12)"; border = "#4f8ef755"; color = "#7aadff"; }
+              let bg = darkMode?"rgba(255,255,255,0.03)":"#f9fafb", border = darkMode?"rgba(255,255,255,0.08)":"#e5e7eb", color = darkMode?"#ccc":"#444";
+              if (userAns === opt) { bg="rgba(79,142,247,0.12)"; border="#4f8ef755"; color="#7aadff"; }
               return (
-                <button key={opt} onClick={() => setAnswers(a => ({ ...a, [curr]: opt }))}
+                <button key={opt} onClick={()=>setAnswers(a=>({...a,[curr]:opt}))}
                   style={{ display:"flex", alignItems:"center", gap:10, width:"100%", textAlign:"left", padding:"13px 16px", borderRadius:9, border:`1.5px solid ${border}`, background:bg, color, cursor:"pointer", fontSize:13.5, fontWeight:500, marginBottom:8, fontFamily:"inherit", transition:"all 0.15s" }}>
-                  <span style={{ width:24, height:24, borderRadius:"50%", background:"rgba(255,255,255,0.06)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, flexShrink:0 }}>
+                  <span style={{ width:24, height:24, borderRadius:"50%", background:darkMode?"rgba(255,255,255,0.06)":"#eee", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, flexShrink:0 }}>
                     {["A","B","C","D"][i]}
                   </span>
                   {opt}
@@ -225,102 +241,81 @@ export default function MockTest() {
             })}
           </div>
 
-          {/* Navigation */}
           <div style={{ display:"flex", gap:10 }}>
-            <button style={s.btn("ghost")} onClick={() => setCurr(c => Math.max(0, c-1))} disabled={curr===0}>← Prev</button>
-            <button style={s.btn("ghost")} onClick={() => setCurr(c => Math.min(questions.length-1, c+1))} disabled={curr===questions.length-1}>Next →</button>
+            <button style={btn("ghost")} onClick={()=>setCurr(c=>Math.max(0,c-1))} disabled={curr===0}>← Prev</button>
+            <button style={btn("ghost")} onClick={()=>setCurr(c=>Math.min(questions.length-1,c+1))} disabled={curr===questions.length-1}>Next →</button>
             <div style={{ flex:1 }} />
-            <button style={s.btn("danger")} onClick={() => { if (window.confirm("Submit exam? This cannot be undone.")) submitExam(); }}>Submit Exam</button>
+            <button style={btn("danger")} onClick={()=>{ if(window.confirm("Submit? This cannot be undone.")) submitExam(); }}>Submit</button>
           </div>
         </div>
 
-        {/* Right: Palette */}
-        <div>
-          <div style={s.card}>
-            <div style={{ fontSize:13, fontWeight:700, color:"#aaa", marginBottom:14 }}>Question Palette</div>
-            <div style={{ display:"flex", gap:8, marginBottom:12 }}>
-              {[{c:"#4f8ef7",l:"Answered"},{c:"rgba(255,255,255,0.1)",l:"Not visited"}].map(x=>(
-                <div key={x.l} style={{ display:"flex", alignItems:"center", gap:5, fontSize:10, color:"#666" }}>
-                  <div style={{ width:10, height:10, borderRadius:2, background:x.c }} />{x.l}
-                </div>
-              ))}
-            </div>
-            <div style={{ display:"flex", flexWrap:"wrap", gap:5 }}>
-              {questions.map((_, i) => {
-                const answered = answers[i] !== undefined;
-                const active = i === curr;
-                return (
-                  <button key={i} onClick={() => setCurr(i)}
-                    style={{ width:32, height:32, borderRadius:6, border:`1.5px solid ${active?"#4f8ef7":answered?"#4f8ef744":"rgba(255,255,255,0.08)"}`, background:active?"#4f8ef7":answered?"rgba(79,142,247,0.2)":"rgba(255,255,255,0.03)", color:active||answered?"#7aadff":"#555", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
-                    {i+1}
-                  </button>
-                );
-              })}
-            </div>
-            <div style={{ marginTop:16, paddingTop:14, borderTop:"1px solid rgba(255,255,255,0.05)" }}>
-              <div style={{ display:"flex", justifyContent:"space-between", fontSize:12, color:"#666", marginBottom:6 }}>
-                <span>Answered</span><span style={{ color:"#4f8ef7" }}>{marked}</span>
-              </div>
-              <div style={{ display:"flex", justifyContent:"space-between", fontSize:12, color:"#666" }}>
-                <span>Remaining</span><span style={{ color:"#f87171" }}>{questions.length - marked}</span>
-              </div>
-            </div>
+        {/* Palette */}
+        <div style={{ background:cardBg, border:`1px solid ${cardBr}`, borderRadius:14, padding:16 }}>
+          <div style={{ fontSize:13, fontWeight:700, color:sub, marginBottom:12 }}>Question Palette</div>
+          <div style={{ display:"flex", flexWrap:"wrap", gap:5, marginBottom:14 }}>
+            {questions.map((_,i)=>{
+              const ans = answers[i]!==undefined;
+              const active = i===curr;
+              return (
+                <button key={i} onClick={()=>setCurr(i)}
+                  style={{ width:30, height:30, borderRadius:6, border:`1.5px solid ${active?"#4f8ef7":ans?"#4f8ef744":darkMode?"rgba(255,255,255,0.08)":"#e5e7eb"}`, background:active?"#4f8ef7":ans?"rgba(79,142,247,0.2)":darkMode?"rgba(255,255,255,0.03)":"#f9fafb", color:active||ans?"#7aadff":sub, fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+                  {i+1}
+                </button>
+              );
+            })}
           </div>
+          <div style={{ fontSize:12, color:sub, marginBottom:4 }}>Answered: <b style={{ color:"#4f8ef7" }}>{answered}</b></div>
+          <div style={{ fontSize:12, color:sub }}>Remaining: <b style={{ color:"#f87171" }}>{questions.length-answered}</b></div>
         </div>
       </div>
     );
   }
 
   // ── RESULT ─────────────────────────────────────────────────────────────────
-  if (phase === "result" && result) {
-    return (
-      <div>
-        <div style={{ textAlign:"center", marginBottom:28 }}>
-          <div style={{ fontSize:52, marginBottom:8 }}>{result.accuracy >= 70 ? "🏆" : result.accuracy >= 50 ? "🎯" : "📚"}</div>
-          <div style={{ fontSize:22, fontWeight:800, color:"#e2e2f0", marginBottom:4 }}>
-            {result.accuracy >= 70 ? "Excellent Performance!" : result.accuracy >= 50 ? "Good Effort!" : "Keep Practicing!"}
-          </div>
-          <div style={{ color:"#555", fontSize:13 }}>DDCET Mock Test · {new Date().toLocaleDateString("en-IN")}</div>
+  if (phase==="result" && result) return (
+    <div>
+      <div style={{ textAlign:"center", marginBottom:24 }}>
+        <div style={{ fontSize:52, marginBottom:8 }}>{result.accuracy>=70?"🏆":result.accuracy>=50?"🎯":"📚"}</div>
+        <div style={{ fontSize:22, fontWeight:800, color:txt, marginBottom:4 }}>
+          {result.accuracy>=70?"Excellent!":result.accuracy>=50?"Good Effort!":"Keep Practicing!"}
         </div>
-
-        {/* Stats */}
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))", gap:12, marginBottom:20 }}>
-          {[
-            { l:"Total Score",    v:result.score,       c:"#4f8ef7" },
-            { l:"Correct",        v:result.correct,     c:"#4ade80" },
-            { l:"Wrong",          v:result.wrong,       c:"#f87171" },
-            { l:"Unanswered",     v:result.unanswered,  c:"#fbbf24" },
-            { l:"Accuracy",       v:result.accuracy+"%",c:"#22d3ee" },
-            { l:"Time Taken",     v:`${Math.floor(result.timeTaken/60)}m`,c:"#a855f7" },
-          ].map(s => (
-            <div key={s.l} style={{ background:`${s.c}11`, border:`1px solid ${s.c}22`, borderRadius:12, padding:"16px", textAlign:"center" }}>
-              <div style={{ fontSize:26, fontWeight:800, color:s.c }}>{s.v}</div>
-              <div style={{ fontSize:11, color:"#666", marginTop:4 }}>{s.l}</div>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ display:"flex", gap:10, marginBottom:24, flexWrap:"wrap" }}>
-          <button style={s.btn("primary")} onClick={() => downloadPDF(result, user)}>⬇ Download Result PDF</button>
-          <button style={s.btn("ghost")} onClick={() => setPhase("intro")}>Take Another Mock</button>
-        </div>
-
-        {/* Wrong answers review */}
-        <div style={s.card}>
-          <div style={{ fontSize:14, fontWeight:700, color:"#f87171", marginBottom:14 }}>❌ Wrong Answer Review ({result.wrong} questions)</div>
-          {result.scored.filter(q => q.userAns && q.userAns !== q.ans).slice(0, 20).map((q, i) => (
-            <div key={i} style={{ padding:"12px 0", borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
-              <div style={{ fontSize:13.5, color:"#ddd", marginBottom:5 }}>{i+1}. {q.q}</div>
-              <div style={{ fontSize:12, color:"#f87171", marginBottom:2 }}>Your answer: {q.userAns}</div>
-              <div style={{ fontSize:12, color:"#4ade80", marginBottom:5 }}>✓ Correct: {q.ans}</div>
-              <div style={{ fontSize:11, color:"#7aadff", background:"rgba(79,142,247,0.07)", padding:"5px 10px", borderRadius:6 }}>💡 {q.sol}</div>
-            </div>
-          ))}
-          {result.wrong > 20 && <div style={{ fontSize:12, color:"#555", marginTop:8 }}>Showing 20 of {result.wrong} wrong answers. Download PDF for full review.</div>}
-        </div>
+        <div style={{ color:sub, fontSize:13 }}>{result.testType==="practice"?"Practice Test":"DDCET Mock"} · {new Date().toLocaleDateString("en-IN")}</div>
       </div>
-    );
-  }
+
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))", gap:12, marginBottom:20 }}>
+        {[
+          {l:"Score /200",   v:result.score,       c:"#4f8ef7"},
+          {l:"Correct (+2)", v:result.correct,      c:"#4ade80"},
+          {l:"Wrong (−0.5)", v:result.wrong,        c:"#f87171"},
+          {l:"Unattempted",  v:result.unanswered,   c:"#fbbf24"},
+          {l:"Accuracy",     v:result.accuracy+"%", c:"#22d3ee"},
+          {l:"Time",         v:`${Math.floor(result.timeTaken/60)}m`, c:"#a855f7"},
+        ].map(s=>(
+          <div key={s.l} style={{ background:`${s.c}11`, border:`1px solid ${s.c}22`, borderRadius:12, padding:16, textAlign:"center" }}>
+            <div style={{ fontSize:26, fontWeight:800, color:s.c }}>{s.v}</div>
+            <div style={{ fontSize:11, color:sub, marginTop:4 }}>{s.l}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display:"flex", gap:10, marginBottom:24, flexWrap:"wrap" }}>
+        <button style={btn("primary")} onClick={()=>downloadPDF(result,user)}>⬇ Download PDF</button>
+        <button style={btn("ghost")} onClick={()=>setPhase("intro")}>Take Another Test</button>
+      </div>
+
+      <div style={{ background:cardBg, border:`1px solid ${cardBr}`, borderRadius:14, padding:22 }}>
+        <div style={{ fontSize:14, fontWeight:700, color:"#f87171", marginBottom:14 }}>❌ Wrong Answer Review ({result.wrong})</div>
+        {result.scored.filter(q=>q.userAns&&q.userAns!==q.ans).slice(0,20).map((q,i)=>(
+          <div key={i} style={{ padding:"12px 0", borderBottom:`1px solid ${darkMode?"rgba(255,255,255,0.04)":"#f0f0f0"}` }}>
+            <div style={{ fontSize:13.5, color:txt, marginBottom:5 }}>{i+1}. {q.q}</div>
+            <div style={{ fontSize:12, color:"#f87171", marginBottom:2 }}>Your: {q.userAns}</div>
+            <div style={{ fontSize:12, color:"#4ade80", marginBottom:5 }}>✓ Correct: {q.ans}</div>
+            <div style={{ fontSize:11, color:"#7aadff", background:"rgba(79,142,247,0.07)", padding:"5px 10px", borderRadius:6 }}>💡 {q.sol}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   return null;
 }
