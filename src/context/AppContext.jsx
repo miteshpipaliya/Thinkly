@@ -89,21 +89,12 @@ export function AppProvider({ children }) {
   },[user?.id]);
 
   /* ═══════ AUTH ══════════════════════════════════════════════ */
-  function signup(email,password,name,extra={}){
+  function signup(email,password,name){
     const all=gUsers();
     if(all.find(u=>u.email===email)) return{error:"Email already registered."};
-    if(extra.username && all.find(u=>u.socialProfile?.username===extra.username))
-      return{error:"Username already taken."};
     const nu={
       id:Date.now(), email, password, name,
-      setupDone:false,
-      profile:{ branch: extra.branch||"", city: extra.city||"" },
-      socialProfile:{
-        username: extra.username||"",
-        city:     extra.city||"",
-        ddcetRank: extra.rankGoal||"",
-      },
-      createdAt:Date.now()
+      setupDone:false, profile:{}, socialProfile:{}, createdAt:Date.now()
     };
     const next=[...all,nu];
     LS.s(K.users,next); setUsers(next);
@@ -127,7 +118,20 @@ export function AppProvider({ children }) {
   }
 
   function completeSetup(profile){
-    _upsert({...user,setupDone:true,profile:{...user.profile,...profile}});
+    // profile may contain: goal, branch, city, targetAcc, username, ddcetRank
+    const { username, ddcetRank, city, ...rest } = profile;
+    const updatedSocialProfile = {
+      ...user.socialProfile,
+      ...(username  ? { username }  : {}),
+      ...(ddcetRank ? { ddcetRank } : {}),
+      ...(city      ? { city }      : {}),
+    };
+    _upsert({
+      ...user,
+      setupDone: true,
+      profile: { ...user.profile, ...rest, ...(city ? { city } : {}) },
+      socialProfile: updatedSocialProfile,
+    });
   }
 
   function updateSocialProfile(sp){
