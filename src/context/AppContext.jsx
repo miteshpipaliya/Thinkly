@@ -1,232 +1,300 @@
+/**
+ * AppContext.jsx — Ranklify v9 "Live Platform"
+ * ─────────────────────────────────────────────
+ * All localStorage keys prefixed "rkl9_" for a clean slate.
+ * Per-user checklist, heartbeat, 1.5s polling, full social graph.
+ */
 import { createContext, useContext, useState, useEffect } from "react";
 
-const AppContext = createContext(null);
+const Ctx = createContext(null);
+export const useApp = () => useContext(Ctx);
 
-/* ── tiny helpers ──────────────────────────────────────────────────── */
+/* ── storage ─────────────────────────────────────────────────── */
 const LS = {
-  get: (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
-  set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  g: (k,d) => { try { const v=localStorage.getItem(k); return v?JSON.parse(v):d; }catch{return d;} },
+  s: (k,v) => { try { localStorage.setItem(k,JSON.stringify(v)); }catch{} },
+};
+const K = {
+  session : "rkl9_session",
+  users   : "rkl9_users",
+  requests: "rkl9_requests",  // {id,from,to,status:'pending'|'accepted'|'rejected',ts}
+  dms     : "rkl9_dms",       // {id,from,to,text,ts,read}
+  gchat   : "rkl9_gchat",     // {id,userId,userName,text,channel,ts}
+  groups  : "rkl9_groups",    // mock sessions
+  invites : "rkl9_invites",   // group mock invites
+  results : "rkl9_results",
+  checks  : "rkl9_checks",    // {[userId]: {[key]:bool}}
+  dark    : "rkl9_dark",
+  online  : "rkl9_online",    // [{id,ts}]
 };
 
+/* ── raw getters/setters ─────────────────────────────────────── */
+const gUsers    = ()  => LS.g(K.users,    []);
+const gReqs     = ()  => LS.g(K.requests, []);
+const gDMs      = ()  => LS.g(K.dms,      []);
+const gGchat    = ()  => LS.g(K.gchat,    []);
+const gGroups   = ()  => LS.g(K.groups,   []);
+const gInvites  = ()  => LS.g(K.invites,  []);
+const gResults  = ()  => LS.g(K.results,  []);
+const gChecks   = ()  => LS.g(K.checks,   {});
+const gOnline   = ()  => LS.g(K.online,   []).filter(h=>Date.now()-h.ts<45000);
+
+/* ════════════════════════════════════════════════════════════════ */
 export function AppProvider({ children }) {
-  const [user,     setUser]     = useState(() => LS.get("rkl4_user",    null));
-  const [users,    setUsers]    = useState(() => LS.get("rkl4_users",   []));
-  const [results,  setResults]  = useState(() => LS.get("rkl4_results", []));
-  const [checklist,setChecklist]= useState(() => LS.get("rkl4_checks",  {}));
-  const [darkMode, setDarkMode] = useState(() => LS.get("rkl4_dark",    true));
-  const [follows,  setFollows]  = useState(() => LS.get("rkl4_follows", []));
-  const [dms,      setDms]      = useState(() => LS.get("rkl4_dms",     []));
-  const [groups,   setGroups]   = useState(() => LS.get("rkl4_groups",  []));
-  const [invites,  setInvites]  = useState(() => LS.get("rkl4_invites", []));
+  const [user,    setUserS]  = useState(() => LS.g(K.session, null));
+  const [users,   setUsers]  = useState(() => gUsers());
+  const [reqs,    setReqs]   = useState(() => gReqs());
+  const [dms,     setDms]    = useState(() => gDMs());
+  const [gchat,   setGchat]  = useState(() => gGchat());
+  const [groups,  setGroups] = useState(() => gGroups());
+  const [invites, setInvs]   = useState(() => gInvites());
+  const [results, setRes]    = useState(() => gResults());
+  const [checks,  setChks]   = useState(() => gChecks());
+  const [dark,    setDark]   = useState(() => LS.g(K.dark, true));
+  const [online,  setOnline] = useState(() => gOnline().map(h=>h.id));
 
-  /* persist */
-  useEffect(() => { LS.set("rkl4_user",    user);     }, [user]);
-  useEffect(() => { LS.set("rkl4_users",   users);    }, [users]);
-  useEffect(() => { LS.set("rkl4_results", results);  }, [results]);
-  useEffect(() => { LS.set("rkl4_checks",  checklist);}, [checklist]);
-  useEffect(() => { LS.set("rkl4_dark",    darkMode); }, [darkMode]);
-  useEffect(() => { LS.set("rkl4_follows", follows);  }, [follows]);
-  useEffect(() => { LS.set("rkl4_dms",     dms);      }, [dms]);
-  useEffect(() => { LS.set("rkl4_groups",  groups);   }, [groups]);
-  useEffect(() => { LS.set("rkl4_invites", invites);  }, [invites]);
+  /* persist simple keys */
+  useEffect(()=>{ LS.s(K.session, user); }, [user]);
+  useEffect(()=>{ LS.s(K.dark,    dark); }, [dark]);
+  useEffect(()=>{ LS.s(K.checks,  checks); }, [checks]);
 
-  /* poll every 1.5 s so two tabs / users on same browser stay in sync */
-  useEffect(() => {
-    const t = setInterval(() => {
-      setGroups(LS.get("rkl4_groups",  []));
-      setInvites(LS.get("rkl4_invites", []));
-      setFollows(LS.get("rkl4_follows", []));
-      setDms(LS.get("rkl4_dms",     []));
-      setUsers(LS.get("rkl4_users",  []));
-    }, 1500);
-    return () => clearInterval(t);
-  }, []);
+  /* ── heartbeat ── */
+  useEffect(()=>{
+    if (!user?.id) return;
+    const beat=()=>{
+      const prev=LS.g(K.online,[]).filter(h=>Date.now()-h.ts<45000);
+      LS.s(K.online,[...prev.filter(h=>h.id!==user.id),{id:user.id,ts:Date.now()}]);
+    };
+    beat();
+    const t=setInterval(beat,20000);
+    return()=>clearInterval(t);
+  },[user?.id]);
 
-  /* ── AUTH ──────────────────────────────────────────────────────── */
-  function signup(email, password, name) {
-    const all = LS.get("rkl4_users", []);
-    if (all.find(u => u.email === email)) return { error: "Email already registered." };
-    const nu = { id: Date.now(), email, password, name, setupDone: false, profile: {}, socialProfile: {} };
-    const next = [...all, nu];
-    LS.set("rkl4_users", next); setUsers(next); setUser(nu);
-    return { ok: true };
+  /* ── polling every 1.5 s ── */
+  useEffect(()=>{
+    const t=setInterval(()=>{
+      const nu=gUsers(); setUsers(nu);
+      setReqs(gReqs()); setDms(gDMs()); setGchat(gGchat());
+      setGroups(gGroups()); setInvs(gInvites()); setRes(gResults());
+      setOnline(gOnline().map(h=>h.id));
+      if (user?.id) {
+        const fr=nu.find(u=>u.id===user.id);
+        if(fr && JSON.stringify(fr)!==JSON.stringify(user)){
+          const u2={...fr};
+          setUserS(u2); LS.s(K.session,u2);
+        }
+      }
+    },1500);
+    return()=>clearInterval(t);
+  },[user?.id]);
+
+  /* ═══════ AUTH ══════════════════════════════════════════════ */
+  function signup(email,password,name){
+    const all=gUsers();
+    if(all.find(u=>u.email===email)) return{error:"Email already registered."};
+    const nu={
+      id:Date.now(), email, password, name,
+      setupDone:false, profile:{}, socialProfile:{}, createdAt:Date.now()
+    };
+    const next=[...all,nu];
+    LS.s(K.users,next); setUsers(next);
+    setUserS(nu); LS.s(K.session,nu);
+    return{ok:true};
   }
 
-  function login(email, password) {
-    const all = LS.get("rkl4_users", []);
-    const found = all.find(u => u.email === email && u.password === password);
-    if (!found) return { error: "Invalid email or password." };
-    setUsers(all); setUser(found);
-    return { ok: true };
+  function login(email,password){
+    const found=gUsers().find(u=>u.email===email&&u.password===password);
+    if(!found) return{error:"Invalid email or password."};
+    setUsers(gUsers()); setUserS(found); LS.s(K.session,found);
+    return{ok:true};
   }
 
-  function logout() { setUser(null); }
+  function logout(){ LS.s(K.session,null); setUserS(null); }
 
-  function completeSetup(profile) {
-    const u2 = { ...user, setupDone: true, profile };
-    setUser(u2);
-    const next = users.map(u => u.id === user.id ? u2 : u);
-    setUsers(next); LS.set("rkl4_users", next);
-  }
-
-  function updateSocialProfile(sp) {
-    const u2 = { ...user, socialProfile: { ...user.socialProfile, ...sp } };
-    setUser(u2);
-    const next = users.map(u => u.id === user.id ? u2 : u);
-    setUsers(next); LS.set("rkl4_users", next);
+  function _upsert(u2){
+    const next=gUsers().map(u=>u.id===u2.id?u2:u);
+    LS.s(K.users,next); setUsers(next);
+    setUserS(u2); LS.s(K.session,u2);
   }
 
-  /* ── RESULTS ───────────────────────────────────────────────────── */
-  function addResult(r) {
-    const s = { ...r, userId: user?.id, userName: user?.name, id: Date.now(), date: new Date().toLocaleDateString("en-IN") };
-    setResults(p => [s, ...p]); return s;
-  }
-  function addMockResult(r) {
-    const s = { ...r, userId: user?.id, userName: user?.name, id: Date.now(), isMock: true };
-    setResults(p => [s, ...p]); return s;
-  }
-  function deleteMockResult(id) { setResults(p => p.filter(r => r.id !== id)); }
-  function toggleChecklist(key) { setChecklist(p => ({ ...p, [key]: !p[key] })); }
-  function toggleDarkMode()     { setDarkMode(d => !d); }
-
-  /* ── FOLLOW SYSTEM ─────────────────────────────────────────────── */
-  function sendFollowRequest(toId) {
-    const latest = LS.get("rkl4_follows", []);
-    if (latest.find(f => f.from === user.id && f.to === toId)) return;
-    const next = [...latest, { id: Date.now(), from: user.id, to: toId, status: "pending" }];
-    LS.set("rkl4_follows", next); setFollows(next);
+  function completeSetup(profile){
+    _upsert({...user,setupDone:true,profile:{...user.profile,...profile}});
   }
 
-  function acceptFollow(followId) {
-    const next = follows.map(f => f.id === followId ? { ...f, status: "accepted" } : f);
-    LS.set("rkl4_follows", next); setFollows(next);
+  function updateSocialProfile(sp){
+    _upsert({...user,socialProfile:{...user.socialProfile,...sp}});
   }
 
-  function rejectFollow(followId) {
-    const next = follows.filter(f => f.id !== followId);
-    LS.set("rkl4_follows", next); setFollows(next);
+  /* ═══════ REQUESTS (peer connections) ══════════════════════ */
+  function sendRequest(toId){
+    const latest=gReqs();
+    if(latest.find(r=>r.from===user.id&&r.to===toId)) return;
+    const next=[...latest,{id:Date.now(),from:user.id,to:toId,status:"pending",ts:Date.now()}];
+    LS.s(K.requests,next); setReqs(next);
   }
 
-  function isFollowing(toId)  { return follows.some(f => f.from === user?.id && f.to === toId && f.status === "accepted"); }
-  function isPending(toId)    { return follows.some(f => f.from === user?.id && f.to === toId && f.status === "pending"); }
-
-  /* people who follow ME (accepted) */
-  function myFollowers() {
-    return follows
-      .filter(f => f.to === user?.id && f.status === "accepted")
-      .map(f => users.find(u => u.id === f.from))
-      .filter(Boolean);
-  }
-  /* people I follow (accepted) */
-  function myFollowing() {
-    return follows
-      .filter(f => f.from === user?.id && f.status === "accepted")
-      .map(f => users.find(u => u.id === f.to))
-      .filter(Boolean);
-  }
-  /* incoming pending follow requests to me */
-  function pendingRequests() {
-    return follows.filter(f => f.to === user?.id && f.status === "pending");
-  }
-  /* all mutual / one-way accepted connections I can invite */
-  function myConnections() {
-    const flwrs = myFollowers().map(u => u.id);
-    const flwng = myFollowing().map(u => u.id);
-    const ids   = [...new Set([...flwrs, ...flwng])];
-    return ids.map(id => users.find(u => u.id === id)).filter(Boolean);
+  function acceptRequest(reqId){
+    const next=gReqs().map(r=>r.id===reqId?{...r,status:"accepted"}:r);
+    LS.s(K.requests,next); setReqs(next);
   }
 
-  /* ── DMs ───────────────────────────────────────────────────────── */
-  function sendDM(toId, text) {
-    const msg  = { id: Date.now(), from: user.id, to: toId, text, ts: Date.now() };
-    const next = [...dms, msg];
-    LS.set("rkl4_dms", next); setDms(next);
-  }
-  function getDMs(withId) {
-    return dms
-      .filter(m => (m.from === user?.id && m.to === withId) || (m.from === withId && m.to === user?.id))
-      .sort((a, b) => a.ts - b.ts);
+  function rejectRequest(reqId){
+    const next=gReqs().filter(r=>r.id!==reqId);
+    LS.s(K.requests,next); setReqs(next);
   }
 
-  /* ── GROUP MOCK ─────────────────────────────────────────────────── */
-  /* create session – host only, seed = session id */
-  function createGroup() {
-    const seed = Date.now();
-    const g = { id: seed, host: user.id, members: [user.id], status: "lobby", results: {}, seed, createdAt: seed };
-    const next = [...LS.get("rkl4_groups", []), g];
-    LS.set("rkl4_groups", next); setGroups(next);
-    return g;
+  function cancelRequest(toId){
+    const next=gReqs().filter(r=>!(r.from===user.id&&r.to===toId&&r.status==="pending"));
+    LS.s(K.requests,next); setReqs(next);
   }
 
-  /* host invites a connection */
-  function sendGroupInvite(groupId, toId) {
-    const latest = LS.get("rkl4_invites", []);
-    if (latest.find(i => i.groupId === groupId && i.to === toId)) return;
-    const next = [...latest, { id: Date.now(), groupId, from: user.id, to: toId, status: "pending", ts: Date.now() }];
-    LS.set("rkl4_invites", next); setInvites(next);
+  /* computed helpers */
+  const isConnected = (uid) => reqs.some(r=>
+    ((r.from===user?.id&&r.to===uid)||(r.from===uid&&r.to===user?.id))&&r.status==="accepted"
+  );
+  const isPending  = (uid) => reqs.some(r=>r.from===user?.id&&r.to===uid&&r.status==="pending");
+  const isIncoming = (uid) => reqs.some(r=>r.from===uid&&r.to===user?.id&&r.status==="pending");
+
+  const incomingRequests = () => reqs
+    .filter(r=>r.to===user?.id&&r.status==="pending")
+    .map(r=>({ req:r, from:gUsers().find(u=>u.id===r.from)||null }))
+    .filter(x=>x.from);
+
+  const outgoingRequests = () => reqs
+    .filter(r=>r.from===user?.id&&r.status==="pending")
+    .map(r=>({ req:r, to:gUsers().find(u=>u.id===r.to)||null }))
+    .filter(x=>x.to);
+
+  const myConnections = () => {
+    const ids=[...new Set([
+      ...reqs.filter(r=>r.to===user?.id&&r.status==="accepted").map(r=>r.from),
+      ...reqs.filter(r=>r.from===user?.id&&r.status==="accepted").map(r=>r.to),
+    ])];
+    return ids.map(id=>gUsers().find(u=>u.id===id)).filter(Boolean);
+  };
+
+  /* legacy aliases used by Profile/GroupMock */
+  const sendFollowRequest = sendRequest;
+  const acceptFollow      = acceptRequest;
+  const rejectFollow      = rejectRequest;
+  const pendingRequests   = () => reqs.filter(r=>r.to===user?.id&&r.status==="pending");
+  const myFollowers       = () => reqs.filter(r=>r.to===user?.id&&r.status==="accepted").map(r=>gUsers().find(u=>u.id===r.from)).filter(Boolean);
+  const myFollowing       = () => reqs.filter(r=>r.from===user?.id&&r.status==="accepted").map(r=>gUsers().find(u=>u.id===r.to)).filter(Boolean);
+
+  /* ═══════ DMs ═══════════════════════════════════════════════ */
+  function sendDM(toId,text){
+    const msg={id:Date.now(),from:user.id,to:toId,text,ts:Date.now(),read:false};
+    const next=[...gDMs(),msg]; LS.s(K.dms,next); setDms(next);
+  }
+  function getDMs(withId){
+    return dms.filter(m=>(m.from===user?.id&&m.to===withId)||(m.from===withId&&m.to===user?.id)).sort((a,b)=>a.ts-b.ts);
+  }
+  function markDMsRead(fromId){
+    const next=gDMs().map(m=>m.from===fromId&&m.to===user?.id?{...m,read:true}:m);
+    LS.s(K.dms,next); setDms(next);
+  }
+  const unreadFrom = (uid) => dms.filter(m=>m.from===uid&&m.to===user?.id&&!m.read).length;
+  const totalUnread = () => dms.filter(m=>m.to===user?.id&&!m.read).length;
+
+  /* ═══════ GROUP CHAT ════════════════════════════════════════ */
+  function sendGroupChat(text,channel="general"){
+    if(!text.trim()) return;
+    const msg={id:Date.now(),userId:user.id,userName:user.name,text:text.trim(),channel,ts:Date.now()};
+    const next=[...gGchat(),msg]; LS.s(K.gchat,next); setGchat(next);
+  }
+  function getChannelMsgs(channel){
+    return gchat.filter(m=>m.channel===channel).sort((a,b)=>a.ts-b.ts);
   }
 
-  /* invited person accepts → joins group */
-  function acceptGroupInvite(inviteId) {
-    const inv = invites.find(i => i.id === inviteId);
-    if (!inv) return;
-    const ni = invites.map(i => i.id === inviteId ? { ...i, status: "accepted" } : i);
-    LS.set("rkl4_invites", ni); setInvites(ni);
-    const ng = LS.get("rkl4_groups", []).map(g =>
-      g.id === inv.groupId && !g.members.includes(user.id)
-        ? { ...g, members: [...g.members, user.id] }
-        : g
-    );
-    LS.set("rkl4_groups", ng); setGroups(ng);
+  /* ═══════ RESULTS ═══════════════════════════════════════════ */
+  function addResult(r){
+    const s={...r,userId:user?.id,userName:user?.name,id:Date.now(),date:new Date().toLocaleDateString("en-IN")};
+    const next=[s,...gResults()]; LS.s(K.results,next); setRes(next); return s;
+  }
+  function addMockResult(r){ return addResult({...r,isMock:true}); }
+  function deleteMockResult(id){
+    const next=gResults().filter(r=>r.id!==id); LS.s(K.results,next); setRes(next);
   }
 
-  function rejectGroupInvite(inviteId) {
-    const next = invites.map(i => i.id === inviteId ? { ...i, status: "rejected" } : i);
-    LS.set("rkl4_invites", next); setInvites(next);
-  }
-
-  /* host starts the test – everyone locked in */
-  function startGroupSession(groupId) {
-    const ng = LS.get("rkl4_groups", []).map(g =>
-      g.id === groupId ? { ...g, status: "running", startedAt: Date.now() } : g
-    );
-    LS.set("rkl4_groups", ng); setGroups(ng);
-  }
-
-  /* each member submits their result */
-  function submitGroupResult(groupId, result) {
-    const ng = LS.get("rkl4_groups", []).map(g => {
-      if (g.id !== groupId) return g;
-      const newResults = { ...g.results, [user.id]: result };
-      const allDone    = g.members.every(id => newResults[id] !== undefined);
-      return { ...g, results: newResults, status: allDone ? "done" : g.status };
+  /* ═══════ CHECKLIST (per user) ══════════════════════════════ */
+  const checklist = checks[user?.id] || {};
+  function toggleChecklist(key){
+    setChks(p=>{
+      const uc=p[user.id]||{};
+      const nx={...p,[user.id]:{...uc,[key]:!uc[key]}};
+      LS.s(K.checks,nx); return nx;
     });
-    LS.set("rkl4_groups", ng); setGroups(ng);
   }
 
-  /* invites waiting for me */
-  function myGroupInvites() {
-    return invites.filter(i => i.to === user?.id && i.status === "pending");
+  /* ═══════ GROUP MOCK ════════════════════════════════════════ */
+  function createGroup(seed){
+    const g={id:Date.now(),host:user.id,members:[user.id],status:"lobby",results:{},seed:seed||Date.now(),createdAt:Date.now()};
+    const next=[...gGroups(),g]; LS.s(K.groups,next); setGroups(next); return g;
   }
+  function sendGroupInvite(groupId,toId){
+    const latest=gInvites();
+    if(latest.find(i=>i.groupId===groupId&&i.to===toId)) return;
+    const next=[...latest,{id:Date.now(),groupId,from:user.id,to:toId,status:"pending",ts:Date.now()}];
+    LS.s(K.invites,next); setInvs(next);
+  }
+  function acceptGroupInvite(inviteId){
+    const inv=gInvites().find(i=>i.id===inviteId); if(!inv) return;
+    const ni=gInvites().map(i=>i.id===inviteId?{...i,status:"accepted"}:i);
+    LS.s(K.invites,ni); setInvs(ni);
+    const ng=gGroups().map(g=>g.id===inv.groupId&&!g.members.includes(user.id)?{...g,members:[...g.members,user.id]}:g);
+    LS.s(K.groups,ng); setGroups(ng);
+  }
+  function rejectGroupInvite(inviteId){
+    const next=gInvites().map(i=>i.id===inviteId?{...i,status:"rejected"}:i);
+    LS.s(K.invites,next); setInvs(next);
+  }
+  function startGroupSession(groupId){
+    const ng=gGroups().map(g=>g.id===groupId?{...g,status:"running",startedAt:Date.now()}:g);
+    LS.s(K.groups,ng); setGroups(ng);
+  }
+  function submitGroupResult(groupId,result){
+    const ng=gGroups().map(g=>{
+      if(g.id!==groupId) return g;
+      const nr={...g.results,[user.id]:result};
+      return{...g,results:nr,status:g.members.every(id=>nr[id]!==undefined)?"done":g.status};
+    });
+    LS.s(K.groups,ng); setGroups(ng);
+  }
+  const myGroupInvites = () => invites.filter(i=>i.to===user?.id&&i.status==="pending");
 
-  const myResults = results.filter(r => r.userId === user?.id);
+  const myResults = results.filter(r=>r.userId===user?.id);
+  const toggleDarkMode = () => setDark(d=>!d);
 
   return (
-    <AppContext.Provider value={{
-      user, users, results, myResults, checklist, darkMode,
-      follows, dms, groups, invites,
+    <Ctx.Provider value={{
+      /* state */
+      user, users, reqs, dms, gchat, groups, invites,
+      results, myResults, checklist, darkMode:dark,
+      onlineIds:online,
+      /* auth */
       signup, login, logout, completeSetup, updateSocialProfile,
-      addResult, addMockResult, deleteMockResult,
-      toggleChecklist, toggleDarkMode,
+      /* requests */
+      sendRequest, acceptRequest, rejectRequest, cancelRequest,
+      isConnected, isPending, isIncoming,
+      incomingRequests, outgoingRequests, myConnections,
+      /* legacy aliases */
       sendFollowRequest, acceptFollow, rejectFollow,
-      isFollowing, isPending, myFollowers, myFollowing, pendingRequests, myConnections,
-      sendDM, getDMs,
+      pendingRequests, myFollowers, myFollowing,
+      /* dms */
+      sendDM, getDMs, markDMsRead, unreadFrom, totalUnread,
+      /* group chat */
+      sendGroupChat, getChannelMsgs,
+      /* results */
+      addResult, addMockResult, deleteMockResult,
+      /* checklist */
+      toggleChecklist,
+      /* group mock */
       createGroup, sendGroupInvite, acceptGroupInvite, rejectGroupInvite,
       startGroupSession, submitGroupResult, myGroupInvites,
+      /* misc */
+      toggleDarkMode,
     }}>
       {children}
-    </AppContext.Provider>
+    </Ctx.Provider>
   );
 }
-
-export const useApp = () => useContext(AppContext);
