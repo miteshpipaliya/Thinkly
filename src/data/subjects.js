@@ -152,16 +152,7 @@ export const QUESTION_BANK = [
   { id: "q72", subject: "English",     chapter: "Correction of Words",            q: "Correct spelling:",                          opts: ["Received", "Recieved", "Recevied", "Recived"],                                    ans: "Received",                   sol: "i before e except after c rule." },
 ];
 
-export const LEADERBOARD_DATA = [
-  { name: "Rahul Patel",  branch: "Computer",   score: 320, accuracy: 88, tests: 12, badge: "🥇" },
-  { name: "Mehul Shah",   branch: "Mechanical", score: 305, accuracy: 84, tests: 10, badge: "🥈" },
-  { name: "Aryan Joshi",  branch: "Civil",      score: 290, accuracy: 80, tests: 9,  badge: "🥉" },
-  { name: "Priya Desai",  branch: "Electrical", score: 275, accuracy: 76, tests: 11, badge: ""   },
-  { name: "Sneha Modi",   branch: "Computer",   score: 260, accuracy: 72, tests: 8,  badge: ""   },
-  { name: "Dev Trivedi",  branch: "Civil",      score: 245, accuracy: 68, tests: 7,  badge: ""   },
-  { name: "Krisha Bhatt", branch: "Mechanical", score: 230, accuracy: 64, tests: 9,  badge: ""   },
-  { name: "Rohan Kapoor", branch: "Electrical", score: 215, accuracy: 60, tests: 6,  badge: ""   },
-];
+// LEADERBOARD_DATA removed — leaderboard now uses real users + real mock test results only.
 
 export function shuffle(arr) {
   const a = [...arr];
