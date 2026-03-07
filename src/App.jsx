@@ -8,7 +8,7 @@ import Dashboard   from "./pages/Dashboard";
 import Subjects    from "./pages/Subjects";
 import UnitTests   from "./pages/UnitTests";
 import MockTest    from "./pages/MockTest";
-import Checklist   from "./pages/Checklist";
+import GroupMock   from "./pages/GroupMock";
 import Explore     from "./pages/Explore";
 import Leaderboard from "./pages/Leaderboard";
 import Discussion  from "./pages/Discussion";
@@ -19,7 +19,6 @@ function Inner() {
   const { user, darkMode } = useApp();
   const [page, setPage] = useState("dashboard");
 
-  // Apply dark/light to body background
   useEffect(() => {
     document.body.style.background = darkMode ? "#050508" : "#f0f2f8";
     document.body.style.color      = darkMode ? "#e2e2f0" : "#111";
@@ -33,11 +32,11 @@ function Inner() {
     "subjects":    <Subjects />,
     "unit-tests":  <UnitTests />,
     "mock-tests":  <MockTest />,
-    "checklist":   <Checklist />,
+    "group-mock":  <GroupMock />,
     "explore":     <Explore />,
     "leaderboard": <Leaderboard />,
     "discussion":  <Discussion />,
-    "profile":     <Profile />,
+    "profile":     <Profile setPage={setPage} />,
     "settings":    <Settings />,
   };
 
@@ -52,9 +51,5 @@ function Inner() {
 }
 
 export default function App() {
-  return (
-    <AppProvider>
-      <Inner />
-    </AppProvider>
-  );
+  return <AppProvider><Inner /></AppProvider>;
 }
