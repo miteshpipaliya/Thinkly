@@ -1,163 +1,180 @@
-import { useState } from "react";
-import { SUBJECTS, QUESTION_BANK, shuffle } from "../data/subjects";
-import { useApp } from "../context/AppContext";
-import Icon from "../components/Icon";
+export const SUBJECTS = [
+  {
+    id: "mathematics",
+    name: "Mathematics",
+    icon: "∑",
+    color: "#4f8ef7",
+    chapters: [
+      "Determinant & Matrices",
+      "Trigonometry",
+      "Vectors",
+      "Coordinate Geometry",
+      "Limit & Function",
+      "Integration",
+      "Differentiation & Applications",
+      "Logarithm",
+      "Statistics",
+    ],
+  },
+  {
+    id: "physics",
+    name: "Physics",
+    icon: "⚛",
+    color: "#22d3ee",
+    chapters: [
+      "Units & Measurement",
+      "Classical Mechanics",
+      "Electric Current",
+      "Heat & Thermometry",
+      "Wave Motion, Optics & Acoustics",
+    ],
+  },
+  {
+    id: "chemistry",
+    name: "Chemistry",
+    icon: "⚗",
+    color: "#fb923c",
+    chapters: [
+      "Chemical Reactions & Equations",
+      "Acids, Bases & Salts",
+      "Metals & Non-metals",
+    ],
+  },
+  {
+    id: "environment",
+    name: "Environment",
+    icon: "🌿",
+    color: "#4ade80",
+    chapters: [
+      "Ecosystem & Pollution (Types)",
+      "Climate Change",
+      "Hydro / Solar / Wind / Bio-mass Energy",
+    ],
+  },
+  {
+    id: "computer",
+    name: "Computer",
+    icon: "💻",
+    color: "#a78bfa",
+    chapters: [
+      "Computer Generations (1 to 5)",
+      "HTML-5",
+      "MS Word / MS Excel / MS PowerPoint",
+    ],
+  },
+  {
+    id: "english",
+    name: "English",
+    icon: "Aa",
+    color: "#f472b6",
+    chapters: [
+      "Letter Writing",
+      "Passage",
+      "Theory of Communication",
+      "Grammar",
+      "Correction of Words",
+    ],
+  },
+];
 
-function QuizModal({ questions, title, onClose, addResult }) {
-  const [curr, setCurr]     = useState(0);
-  const [answers, setAnswers] = useState({});
-  const [finished, setFinished] = useState(false);
-  const [result, setResult]   = useState(null);
+export const QUESTION_BANK = [
+  { id: "q1",  subject: "Mathematics", chapter: "Trigonometry",                   q: "sin2 + cos2 = ?",                            opts: ["0", "1", "2", "-1"],                                                              ans: "1",                          sol: "Pythagorean identity." },
+  { id: "q2",  subject: "Mathematics", chapter: "Trigonometry",                   q: "cos 60 degrees = ?",                         opts: ["1/2", "root3/2", "1", "0"],                                                       ans: "1/2",                        sol: "Standard value." },
+  { id: "q3",  subject: "Mathematics", chapter: "Trigonometry",                   q: "tan 45 degrees = ?",                         opts: ["0", "1", "root3", "undefined"],                                                   ans: "1",                          sol: "tan45 = sin45/cos45 = 1." },
+  { id: "q4",  subject: "Mathematics", chapter: "Trigonometry",                   q: "sec2 - tan2 = ?",                            opts: ["1", "0", "2", "-1"],                                                              ans: "1",                          sol: "Identity: sec2 - tan2 = 1." },
+  { id: "q5",  subject: "Mathematics", chapter: "Trigonometry",                   q: "sin(A+B) = ?",                               opts: ["sinA cosB + cosA sinB", "sinA sinB - cosA cosB", "cosA cosB", "None"],            ans: "sinA cosB + cosA sinB",      sol: "Addition formula." },
+  { id: "q6",  subject: "Mathematics", chapter: "Trigonometry",                   q: "cos(90 - theta) = ?",                        opts: ["cosθ", "sinθ", "tanθ", "-sinθ"],                                                  ans: "sinθ",                       sol: "Complementary identity." },
+  { id: "q7",  subject: "Mathematics", chapter: "Trigonometry",                   q: "sin 0 degrees = ?",                          opts: ["0", "1", "-1", "infinity"],                                                       ans: "0",                          sol: "sin0 = 0 by definition." },
+  { id: "q8",  subject: "Mathematics", chapter: "Trigonometry",                   q: "tan(90 degrees) is:",                        opts: ["0", "1", "undefined", "root3"],                                                   ans: "undefined",                  sol: "tan90 = sin90/cos90 = 1/0 = undefined." },
+  { id: "q9",  subject: "Mathematics", chapter: "Determinant & Matrices",         q: "|1 2; 3 4| = ?",                             opts: ["-2", "2", "10", "-10"],                                                           ans: "-2",                         sol: "(1x4) - (2x3) = -2." },
+  { id: "q10", subject: "Mathematics", chapter: "Determinant & Matrices",         q: "If det(A) = 0, A is:",                       opts: ["Singular", "Non-singular", "Identity", "None"],                                   ans: "Singular",                   sol: "det = 0 means no inverse." },
+  { id: "q11", subject: "Mathematics", chapter: "Determinant & Matrices",         q: "Order of matrix with 3 rows, 2 cols:",       opts: ["3x2", "2x3", "6x1", "1x6"],                                                       ans: "3x2",                        sol: "Rows x Columns notation." },
+  { id: "q12", subject: "Mathematics", chapter: "Determinant & Matrices",         q: "det(I) where I is identity matrix:",         opts: ["0", "1", "-1", "2"],                                                              ans: "1",                          sol: "Determinant of identity matrix is always 1." },
+  { id: "q13", subject: "Mathematics", chapter: "Integration",                    q: "Integral of x dx = ?",                       opts: ["x2/2 + C", "x2 + C", "2x + C", "x/2"],                                           ans: "x2/2 + C",                   sol: "Power rule." },
+  { id: "q14", subject: "Mathematics", chapter: "Integration",                    q: "Integral of e^x dx = ?",                     opts: ["e^x + C", "xe^x + C", "e + C", "e^x/x"],                                         ans: "e^x + C",                    sol: "e^x is its own integral." },
+  { id: "q15", subject: "Mathematics", chapter: "Integration",                    q: "Integral of cos x dx = ?",                   opts: ["sin x + C", "-sin x + C", "tan x + C", "cos x"],                                  ans: "sin x + C",                  sol: "Standard integral." },
+  { id: "q16", subject: "Mathematics", chapter: "Integration",                    q: "Integral of 1/x dx = ?",                     opts: ["ln|x| + C", "1/x2 + C", "x^-1 + C", "-ln x"],                                   ans: "ln|x| + C",                  sol: "Standard result." },
+  { id: "q17", subject: "Mathematics", chapter: "Statistics",                     q: "Mean of 2, 4, 6, 8, 10 = ?",                opts: ["5", "6", "7", "4"],                                                               ans: "6",                          sol: "30/5 = 6." },
+  { id: "q18", subject: "Mathematics", chapter: "Statistics",                     q: "Median of 3, 5, 7, 9, 11 = ?",              opts: ["7", "5", "9", "6"],                                                               ans: "7",                          sol: "Middle of sorted set." },
+  { id: "q19", subject: "Mathematics", chapter: "Statistics",                     q: "Mode is:",                                   opts: ["Most frequent", "Middle value", "Sum/n", "Square root of variance"],               ans: "Most frequent",              sol: "Mode = most common value." },
+  { id: "q20", subject: "Mathematics", chapter: "Vectors",                        q: "A vector has:",                              opts: ["Magnitude only", "Direction only", "Both magnitude and direction", "Neither"],    ans: "Both magnitude and direction", sol: "Definition of vector." },
+  { id: "q21", subject: "Mathematics", chapter: "Vectors",                        q: "Unit vector magnitude = ?",                  opts: ["0", "1", "2", "Variable"],                                                        ans: "1",                          sol: "Unit vector has magnitude 1." },
+  { id: "q22", subject: "Mathematics", chapter: "Logarithm",                      q: "log base 10 of 1000 = ?",                    opts: ["2", "3", "4", "10"],                                                              ans: "3",                          sol: "10^3 = 1000, so log = 3." },
+  { id: "q23", subject: "Mathematics", chapter: "Logarithm",                      q: "log(AB) = ?",                                opts: ["logA + logB", "logA - logB", "logA x logB", "logA / logB"],                      ans: "logA + logB",                sol: "Product rule of logarithm." },
+  { id: "q24", subject: "Mathematics", chapter: "Coordinate Geometry",            q: "Distance between (0,0) and (3,4) = ?",       opts: ["5", "7", "4", "3"],                                                               ans: "5",                          sol: "sqrt(9+16) = 5." },
+  { id: "q25", subject: "Mathematics", chapter: "Coordinate Geometry",            q: "Slope of line y = 2x + 3 is:",               opts: ["3", "2", "1", "0"],                                                               ans: "2",                          sol: "y = mx + c; m = 2." },
+  { id: "q26", subject: "Mathematics", chapter: "Differentiation & Applications", q: "d/dx(x^n) = ?",                              opts: ["nx^(n-1)", "x^(n+1)", "nx", "x^n/n"],                                             ans: "nx^(n-1)",                   sol: "Power rule of differentiation." },
+  { id: "q27", subject: "Mathematics", chapter: "Differentiation & Applications", q: "d/dx(sin x) = ?",                            opts: ["cos x", "-cos x", "sin x", "tan x"],                                              ans: "cos x",                      sol: "Standard derivative." },
+  { id: "q28", subject: "Mathematics", chapter: "Limit & Function",               q: "lim x to 0 of (sin x / x) = ?",             opts: ["0", "1", "infinity", "undefined"],                                                ans: "1",                          sol: "Standard limit result." },
+  { id: "q29", subject: "Physics",     chapter: "Classical Mechanics",            q: "F = ?",                                      opts: ["ma", "mv", "m/a", "a/m"],                                                         ans: "ma",                         sol: "Newton's 2nd law." },
+  { id: "q30", subject: "Physics",     chapter: "Classical Mechanics",            q: "Unit of force:",                             opts: ["Newton", "Joule", "Watt", "Pascal"],                                               ans: "Newton",                     sol: "SI unit = Newton." },
+  { id: "q31", subject: "Physics",     chapter: "Classical Mechanics",            q: "KE = ?",                                     opts: ["1/2 mv2", "mv2", "mgh", "Fd"],                                                    ans: "1/2 mv2",                    sol: "Kinetic energy formula." },
+  { id: "q32", subject: "Physics",     chapter: "Classical Mechanics",            q: "g on Earth = ?",                             opts: ["9.8 m/s2", "8.9 m/s2", "10.8 m/s2", "6.7 m/s2"],                                ans: "9.8 m/s2",                   sol: "Standard gravitational acc." },
+  { id: "q33", subject: "Physics",     chapter: "Classical Mechanics",            q: "Momentum = ?",                               opts: ["mv", "m/v", "ma", "FxT"],                                                         ans: "mv",                         sol: "p = mass x velocity." },
+  { id: "q34", subject: "Physics",     chapter: "Units & Measurement",            q: "SI unit of length:",                         opts: ["Meter", "Centimeter", "Foot", "Inch"],                                             ans: "Meter",                      sol: "SI unit of length is metre." },
+  { id: "q35", subject: "Physics",     chapter: "Units & Measurement",            q: "SI unit of mass:",                           opts: ["Kilogram", "Gram", "Pound", "Ton"],                                                ans: "Kilogram",                   sol: "SI unit of mass = kg." },
+  { id: "q36", subject: "Physics",     chapter: "Electric Current",               q: "Ohm's law: V = ?",                           opts: ["IR", "I/R", "R/I", "I2R"],                                                        ans: "IR",                         sol: "V = Current x Resistance." },
+  { id: "q37", subject: "Physics",     chapter: "Electric Current",               q: "Unit of resistance:",                        opts: ["Ohm", "Volt", "Ampere", "Watt"],                                                   ans: "Ohm",                        sol: "Resistance unit = Ohm." },
+  { id: "q38", subject: "Physics",     chapter: "Electric Current",               q: "Power P = ?",                                opts: ["VI", "V/I", "V+I", "V-I"],                                                        ans: "VI",                         sol: "P = Voltage x Current." },
+  { id: "q39", subject: "Physics",     chapter: "Heat & Thermometry",             q: "Absolute zero = ?",                          opts: ["0 K", "-273 C", "Both A and B", "273 K"],                                         ans: "Both A and B",               sol: "0K = -273.15 C." },
+  { id: "q40", subject: "Physics",     chapter: "Heat & Thermometry",             q: "Water boils at:",                            opts: ["100 C", "0 C", "37 C", "212 F only"],                                             ans: "100 C",                      sol: "At 1 atm, water boils at 100 C." },
+  { id: "q41", subject: "Physics",     chapter: "Wave Motion, Optics & Acoustics",q: "Speed of sound in air = ?",                  opts: ["343 m/s", "243 m/s", "443 m/s", "143 m/s"],                                       ans: "343 m/s",                    sol: "At 20 C." },
+  { id: "q42", subject: "Physics",     chapter: "Wave Motion, Optics & Acoustics",q: "Speed of light = ?",                         opts: ["3x10^8 m/s", "3x10^6 m/s", "3x10^10 m/s", "3x10^4 m/s"],                        ans: "3x10^8 m/s",                 sol: "In vacuum." },
+  { id: "q43", subject: "Chemistry",   chapter: "Chemical Reactions & Equations", q: "Chemical formula of water:",                 opts: ["H2O", "HO2", "H2O2", "HO"],                                                       ans: "H2O",                        sol: "Two hydrogen, one oxygen." },
+  { id: "q44", subject: "Chemistry",   chapter: "Chemical Reactions & Equations", q: "Photosynthesis produces:",                   opts: ["Glucose and O2", "CO2 and water", "NaCl", "NH3"],                                 ans: "Glucose and O2",            sol: "6CO2 + 6H2O gives C6H12O6 + 6O2." },
+  { id: "q45", subject: "Chemistry",   chapter: "Acids, Bases & Salts",           q: "pH of pure water:",                          opts: ["7", "0", "14", "1"],                                                              ans: "7",                          sol: "Pure water is neutral, pH = 7." },
+  { id: "q46", subject: "Chemistry",   chapter: "Acids, Bases & Salts",           q: "HCl is a _____ acid:",                       opts: ["Strong", "Weak", "Neutral", "Salt"],                                              ans: "Strong",                     sol: "HCl is a strong acid." },
+  { id: "q47", subject: "Chemistry",   chapter: "Acids, Bases & Salts",           q: "NaOH is a:",                                 opts: ["Strong base", "Weak acid", "Salt", "Neutral"],                                    ans: "Strong base",                sol: "NaOH = sodium hydroxide = strong base." },
+  { id: "q48", subject: "Chemistry",   chapter: "Metals & Non-metals",            q: "Most abundant metal in Earth crust:",        opts: ["Aluminium", "Iron", "Copper", "Gold"],                                             ans: "Aluminium",                  sol: "Al is most abundant metal." },
+  { id: "q49", subject: "Chemistry",   chapter: "Metals & Non-metals",            q: "Non-metals are generally:",                  opts: ["Poor conductors", "Good conductors", "Magnetic", "Malleable"],                    ans: "Poor conductors",            sol: "Non-metals do not conduct electricity well." },
+  { id: "q50", subject: "Chemistry",   chapter: "Metals & Non-metals",            q: "Atomic number of Iron (Fe):",                opts: ["26", "28", "24", "30"],                                                           ans: "26",                         sol: "Fe has Z = 26." },
+  { id: "q51", subject: "Environment", chapter: "Ecosystem & Pollution (Types)",  q: "Greenhouse gas causing most warming:",       opts: ["CO2", "O2", "N2", "Ar"],                                                          ans: "CO2",                        sol: "Carbon dioxide is primary greenhouse gas." },
+  { id: "q52", subject: "Environment", chapter: "Ecosystem & Pollution (Types)",  q: "Ozone layer is in:",                         opts: ["Stratosphere", "Troposphere", "Mesosphere", "Exosphere"],                         ans: "Stratosphere",               sol: "Ozone layer is in the stratosphere." },
+  { id: "q53", subject: "Environment", chapter: "Climate Change",                 q: "Paris Agreement target temperature rise:",   opts: ["1.5 C", "2.5 C", "3 C", "0.5 C"],                                                ans: "1.5 C",                      sol: "Paris Agreement aims for max 1.5 C rise." },
+  { id: "q54", subject: "Environment", chapter: "Hydro / Solar / Wind / Bio-mass Energy", q: "Solar energy source:",              opts: ["Sun", "Wind", "Water", "Biomass"],                                                 ans: "Sun",                        sol: "Solar energy comes from the sun." },
+  { id: "q55", subject: "Environment", chapter: "Hydro / Solar / Wind / Bio-mass Energy", q: "Hydropower uses:",                  opts: ["Flowing water", "Wind", "Sun", "Biomass"],                                        ans: "Flowing water",              sol: "Hydro = water-based power generation." },
+  { id: "q56", subject: "Computer",    chapter: "Computer Generations (1 to 5)",  q: "1st generation computers used:",             opts: ["Vacuum tubes", "Transistors", "ICs", "Microprocessors"],                          ans: "Vacuum tubes",               sol: "First gen (1940-1956) used vacuum tubes." },
+  { id: "q57", subject: "Computer",    chapter: "Computer Generations (1 to 5)",  q: "2nd generation computers used:",             opts: ["Transistors", "Vacuum tubes", "ICs", "Chips"],                                    ans: "Transistors",                sol: "Second gen (1956-1963) used transistors." },
+  { id: "q58", subject: "Computer",    chapter: "Computer Generations (1 to 5)",  q: "4th generation used:",                       opts: ["Microprocessors", "ICs", "Transistors", "Vacuum tubes"],                          ans: "Microprocessors",            sol: "4th gen introduced microprocessors." },
+  { id: "q59", subject: "Computer",    chapter: "HTML-5",                         q: "HTML stands for:",                           opts: ["HyperText Markup Language", "High Text Markup Language", "HyperText Management Language", "None"], ans: "HyperText Markup Language", sol: "HTML = HyperText Markup Language." },
+  { id: "q60", subject: "Computer",    chapter: "HTML-5",                         q: "br tag is used for:",                        opts: ["Line break", "Bold text", "Border", "Background"],                                ans: "Line break",                 sol: "br tag inserts a line break." },
+  { id: "q61", subject: "Computer",    chapter: "MS Word / MS Excel / MS PowerPoint", q: "File extension for MS Word:",           opts: [".docx", ".xlsx", ".pptx", ".pdf"],                                                ans: ".docx",                      sol: ".docx is the MS Word format." },
+  { id: "q62", subject: "Computer",    chapter: "MS Word / MS Excel / MS PowerPoint", q: "Shortcut to save a file:",              opts: ["Ctrl+S", "Ctrl+P", "Ctrl+C", "Ctrl+X"],                                           ans: "Ctrl+S",                     sol: "Ctrl+S saves the file." },
+  { id: "q63", subject: "English",     chapter: "Grammar",                        q: "She ___ to school. Fill in the blank:",      opts: ["goes", "go", "going", "gone"],                                                    ans: "goes",                       sol: "3rd person singular present." },
+  { id: "q64", subject: "English",     chapter: "Grammar",                        q: "Plural of Child:",                           opts: ["Children", "Childs", "Childes", "Childrens"],                                     ans: "Children",                   sol: "Irregular plural." },
+  { id: "q65", subject: "English",     chapter: "Grammar",                        q: "Antonym of Brave:",                          opts: ["Coward", "Bold", "Fearless", "Daring"],                                           ans: "Coward",                     sol: "Opposite = coward." },
+  { id: "q66", subject: "English",     chapter: "Grammar",                        q: "Synonym of Happy:",                          opts: ["Joyful", "Sad", "Angry", "Tired"],                                                ans: "Joyful",                     sol: "Joyful = synonym of happy." },
+  { id: "q67", subject: "English",     chapter: "Grammar",                        q: "Passive voice: She writes a letter:",        opts: ["A letter is written by her", "A letter was written", "She is writing", "None"],  ans: "A letter is written by her", sol: "Active to Passive rule." },
+  { id: "q68", subject: "English",     chapter: "Theory of Communication",        q: "Communication involves:",                    opts: ["Sender and Receiver", "Only Sender", "Only Receiver", "Machine only"],            ans: "Sender and Receiver",        sol: "Communication = transfer between sender and receiver." },
+  { id: "q69", subject: "English",     chapter: "Theory of Communication",        q: "Barrier in communication:",                  opts: ["Noise", "Clarity", "Feedback", "Channel"],                                        ans: "Noise",                      sol: "Noise disrupts communication." },
+  { id: "q70", subject: "English",     chapter: "Passage",                        q: "Reading comprehension tests your:",          opts: ["Understanding of text", "Writing skill", "Grammar only", "Vocabulary only"],     ans: "Understanding of text",      sol: "Passage = understanding and inference." },
+  { id: "q71", subject: "English",     chapter: "Letter Writing",                 q: "Formal letter ends with:",                   opts: ["Yours faithfully", "Yours lovingly", "See you", "Bye"],                           ans: "Yours faithfully",           sol: "Formal letters close with Yours faithfully." },
+  { id: "q72", subject: "English",     chapter: "Correction of Words",            q: "Correct spelling:",                          opts: ["Received", "Recieved", "Recevied", "Recived"],                                    ans: "Received",                   sol: "i before e except after c rule." },
+];
 
-  function answer(opt) {
-    if (answers[curr] !== undefined) return;
-    setAnswers(a => ({ ...a, [curr]: opt }));
-    setTimeout(() => {
-      if (curr + 1 >= questions.length) finish({ ...answers, [curr]: opt });
-      else setCurr(c => c + 1);
-    }, 800);
+export const LEADERBOARD_DATA = [
+  { name: "Rahul Patel",  branch: "Computer",   score: 320, accuracy: 88, tests: 12, badge: "🥇" },
+  { name: "Mehul Shah",   branch: "Mechanical", score: 305, accuracy: 84, tests: 10, badge: "🥈" },
+  { name: "Aryan Joshi",  branch: "Civil",      score: 290, accuracy: 80, tests: 9,  badge: "🥉" },
+  { name: "Priya Desai",  branch: "Electrical", score: 275, accuracy: 76, tests: 11, badge: ""   },
+  { name: "Sneha Modi",   branch: "Computer",   score: 260, accuracy: 72, tests: 8,  badge: ""   },
+  { name: "Dev Trivedi",  branch: "Civil",      score: 245, accuracy: 68, tests: 7,  badge: ""   },
+  { name: "Krisha Bhatt", branch: "Mechanical", score: 230, accuracy: 64, tests: 9,  badge: ""   },
+  { name: "Rohan Kapoor", branch: "Electrical", score: 215, accuracy: 60, tests: 6,  badge: ""   },
+];
+
+export function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
   }
-
-  function finish(ans) {
-    const scored = questions.map((q, i) => ({ ...q, userAns: ans[i], correct: ans[i] === q.ans }));
-    const correct = scored.filter(q => q.correct).length;
-    const accuracy = Math.round(correct / questions.length * 100);
-    const r = addResult({ title, isMock: false, score: correct * 2, total: questions.length * 2, correct, wrong: questions.length - correct, accuracy, scored });
-    setResult({ scored, correct, accuracy, r });
-    setFinished(true);
-  }
-
-  const overlay = { position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", zIndex:300, display:"flex", alignItems:"center", justifyContent:"center", padding:16 };
-  const box = { background:"#0d0d18", border:"1px solid rgba(255,255,255,0.08)", borderRadius:18, width:"100%", maxWidth:600, maxHeight:"90vh", overflowY:"auto", padding:28 };
-
-  if (finished && result) return (
-    <div style={overlay}>
-      <div style={box}>
-        <div style={{ textAlign:"center", marginBottom:24 }}>
-          <div style={{ fontSize:48, marginBottom:8 }}>{result.accuracy >= 70 ? "🎉" : "📚"}</div>
-          <div style={{ fontSize:20, fontWeight:800, color:"#e2e2f0", marginBottom:4 }}>{result.accuracy >= 70 ? "Great!" : "Keep Practicing!"}</div>
-          <div style={{ color:"#666", fontSize:13 }}>{title}</div>
-        </div>
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:10, marginBottom:24 }}>
-          {[{l:"Correct",v:result.correct,c:"#4ade80"},{l:"Accuracy",v:result.accuracy+"%",c:"#4f8ef7"},{l:"Wrong",v:questions.length-result.correct,c:"#f87171"}].map(s=>(
-            <div key={s.l} style={{ textAlign:"center", background:`${s.c}11`, border:`1px solid ${s.c}22`, borderRadius:10, padding:"14px 10px" }}>
-              <div style={{ fontSize:24, fontWeight:800, color:s.c }}>{s.v}</div>
-              <div style={{ fontSize:11, color:"#666" }}>{s.l}</div>
-            </div>
-          ))}
-        </div>
-        {result.scored.filter(q => !q.correct).length > 0 && (
-          <div style={{ marginBottom:20 }}>
-            <div style={{ fontSize:14, fontWeight:700, color:"#f87171", marginBottom:10 }}>❌ Review Wrong Answers</div>
-            {result.scored.filter(q => !q.correct).map((q, i) => (
-              <div key={i} style={{ padding:"10px 0", borderBottom:"1px solid rgba(255,255,255,0.05)" }}>
-                <div style={{ fontSize:13, color:"#ddd", marginBottom:4 }}>{q.q}</div>
-                <div style={{ fontSize:12, color:"#f87171" }}>Your: {q.userAns || "—"}</div>
-                <div style={{ fontSize:12, color:"#4ade80" }}>✓ {q.ans}</div>
-                <div style={{ fontSize:11, color:"#7aadff", marginTop:4, padding:"5px 10px", background:"rgba(79,142,247,0.08)", borderRadius:6 }}>💡 {q.sol}</div>
-              </div>
-            ))}
-          </div>
-        )}
-        <button onClick={onClose} style={{ width:"100%", padding:"12px", borderRadius:10, border:"none", cursor:"pointer", background:"linear-gradient(135deg,#4f8ef7,#a855f7)", color:"#fff", fontSize:14, fontWeight:700, fontFamily:"inherit" }}>Close</button>
-      </div>
-    </div>
-  );
-
-  const q = questions[curr];
-  const userAns = answers[curr];
-  return (
-    <div style={overlay}>
-      <div style={box}>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
-          <div style={{ fontSize:13, color:"#666" }}>{title}</div>
-          <div style={{ fontSize:12, color:"#888" }}>Q{curr+1}/{questions.length}</div>
-        </div>
-        <div style={{ height:3, background:"rgba(255,255,255,0.06)", borderRadius:2, marginBottom:22, overflow:"hidden" }}>
-          <div style={{ height:"100%", width:`${(curr+1)/questions.length*100}%`, background:"linear-gradient(90deg,#4f8ef7,#a855f7)", transition:"width 0.3s" }} />
-        </div>
-        <div style={{ fontSize:16, fontWeight:600, color:"#e2e2f0", marginBottom:22, lineHeight:1.6 }}>{q.q}</div>
-        {q.opts.map((opt, i) => {
-          let bg = "rgba(255,255,255,0.03)", border = "rgba(255,255,255,0.08)", color = "#ccc";
-          if (userAns !== undefined) {
-            if (opt === q.ans) { bg = "rgba(74,222,128,0.1)"; border = "#4ade8055"; color = "#4ade80"; }
-            else if (opt === userAns) { bg = "rgba(239,68,68,0.1)"; border = "#f8717155"; color = "#f87171"; }
-          }
-          return (
-            <button key={opt} onClick={() => answer(opt)}
-              style={{ display:"flex", alignItems:"center", gap:10, width:"100%", textAlign:"left", padding:"12px 16px", borderRadius:9, border:`1.5px solid ${border}`, background:bg, color, cursor:userAns?"default":"pointer", fontSize:13, fontWeight:500, marginBottom:8, fontFamily:"inherit", transition:"all 0.2s" }}>
-              <span style={{ width:22, height:22, borderRadius:"50%", background:"rgba(255,255,255,0.06)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, flexShrink:0 }}>
-                {["A","B","C","D"][i]}
-              </span>
-              {opt}
-            </button>
-          );
-        })}
-        {userAns && (
-          <div style={{ marginTop:10, padding:"10px 14px", background:"rgba(79,142,247,0.08)", borderLeft:"3px solid #4f8ef7", borderRadius:"0 8px 8px 0", fontSize:12, color:"#7aadff" }}>💡 {q.sol}</div>
-        )}
-        <button onClick={onClose} style={{ marginTop:16, padding:"8px 16px", borderRadius:8, border:"1px solid rgba(255,255,255,0.08)", background:"transparent", color:"#555", cursor:"pointer", fontSize:12, fontFamily:"inherit" }}>Exit Quiz</button>
-      </div>
-    </div>
-  );
+  return a;
 }
 
-export default function Subjects() {
-  const { addResult, checklist } = useApp();
-  const [expanded, setExpanded] = useState(null);
-  const [quiz, setQuiz]         = useState(null);
-
-  function startQuiz(subj, ch) {
-    const pool = shuffle(QUESTION_BANK.filter(q => q.subject === subj && q.chapter === ch));
-    if (!pool.length) { alert("Questions for this chapter coming soon!"); return; }
-    setQuiz({ questions: pool.slice(0, Math.min(10, pool.length)), title: `${subj} — ${ch}` });
-  }
-
-  return (
-    <div>
-      <div style={{ fontSize:22, fontWeight:800, color:"#e2e2f0", marginBottom:4 }}>Subjects</div>
-      <div style={{ color:"#666", fontSize:13, marginBottom:24 }}>Select a chapter to start a practice quiz.</div>
-
-      {SUBJECTS.map(subj => (
-        <div key={subj.id} style={{ background:"rgba(255,255,255,0.025)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:14, marginBottom:12, overflow:"hidden" }}>
-          {/* Subject header */}
-          <button onClick={() => setExpanded(expanded === subj.id ? null : subj.id)}
-            style={{ width:"100%", display:"flex", alignItems:"center", gap:12, padding:"18px 22px", background:"transparent", border:"none", cursor:"pointer", textAlign:"left" }}>
-            <span style={{ fontSize:24 }}>{subj.icon}</span>
-            <div style={{ flex:1 }}>
-              <div style={{ fontSize:15, fontWeight:700, color:subj.color }}>{subj.name}</div>
-              <div style={{ fontSize:12, color:"#555" }}>
-                {subj.chapters.length} chapters · {subj.chapters.filter(ch => checklist[`${subj.id}-${ch}`]).length} done
-              </div>
-            </div>
-            <div style={{ width:24, height:24, borderRadius:"50%", background:`${subj.color}22`, display:"flex", alignItems:"center", justifyContent:"center", color:subj.color, transition:"transform 0.2s", transform: expanded===subj.id?"rotate(90deg)":"none" }}>›</div>
-          </button>
-
-          {/* Chapters */}
-          {expanded === subj.id && (
-            <div style={{ padding:"0 22px 18px", borderTop:"1px solid rgba(255,255,255,0.05)" }}>
-              {subj.chapters.map(ch => {
-                const done = checklist[`${subj.id}-${ch}`];
-                const qCount = QUESTION_BANK.filter(q => q.subject === subj.name && q.chapter === ch).length;
-                return (
-                  <div key={ch} style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 0", borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
-                    <div style={{ width:7, height:7, borderRadius:"50%", background:done?subj.color:"rgba(255,255,255,0.1)", flexShrink:0 }} />
-                    <span style={{ flex:1, fontSize:13.5, color:done?"#ddd":"#999" }}>{ch}</span>
-                    <span style={{ fontSize:11, color:"#444" }}>{qCount} Qs</span>
-                    {done && <span style={{ fontSize:10, padding:"2px 8px", borderRadius:10, background:`${subj.color}15`, color:subj.color }}>Revised ✓</span>}
-                    <button onClick={() => startQuiz(subj.name, ch)}
-                      style={{ padding:"6px 14px", borderRadius:7, border:`1px solid ${subj.color}44`, background:`${subj.color}12`, color:subj.color, fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
-                      Practice →
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      ))}
-
-      {quiz && <QuizModal questions={quiz.questions} title={quiz.title} addResult={addResult} onClose={() => setQuiz(null)} />}
-    </div>
-  );
+export function getDaysRemaining() {
+  const now = new Date();
+  let target = new Date(now.getFullYear(), 4, 15);
+  if (now > target) target = new Date(now.getFullYear() + 1, 4, 15);
+  return Math.ceil((target - now) / (1000 * 60 * 60 * 24));
 }
