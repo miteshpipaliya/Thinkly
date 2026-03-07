@@ -1,90 +1,96 @@
+/**
+ * Setup.jsx — Ranklify v9
+ * Target marks + branch (with IT) + city
+ */
 import { useState } from "react";
 import { useApp } from "../context/AppContext";
 
-const BRANCHES = ["Mechanical","Civil","Electrical","Computer","Electronics","Chemical","Textile","Automobile","Production","Instrumentation"];
+const BRANCHES = [
+  "Mechanical","Civil","Electrical","Computer",
+  "Electronics","Chemical","IT","Textile",
+  "Automobile","Production","Instrumentation",
+];
 
 export default function Setup() {
   const { completeSetup, user } = useApp();
-  const [goal,   setGoal]   = useState("");
-  const [branch, setBranch] = useState("");
+  const [goal,   setGoal]   = useState(user?.profile?.goal   || "");
+  const [branch, setBranch] = useState(user?.profile?.branch || "");
+  const [city,   setCity]   = useState(user?.socialProfile?.city || "");
   const [err,    setErr]    = useState("");
 
-  // Accuracy out of 200 marks
-  const targetAcc = goal && !isNaN(parseFloat(goal))
-    ? Math.min(100, Math.round(parseFloat(goal) / 200 * 100 * 10) / 10)
-    : 0;
+  const acc = goal && !isNaN(+goal)
+    ? Math.min(100, Math.round(+goal/200*1000)/10) : 0;
 
-  function submit() {
-    if (!goal || !branch) { setErr("Please fill all fields."); return; }
-    if (isNaN(parseFloat(goal))) { setErr("Please enter a valid number."); return; }
-    if (parseFloat(goal) > 200)  { setErr("Max marks is 200."); return; }
-    completeSetup({ goal, branch, targetAcc });
+  function submit(){
+    if (!goal || !branch){ setErr("Please fill target marks and branch."); return; }
+    if (isNaN(+goal))     { setErr("Enter a valid number."); return; }
+    if (+goal > 200)      { setErr("Max marks is 200."); return; }
+    completeSetup({ goal, branch, targetAcc:acc, city });
   }
 
-  const s = {
-    page:   { minHeight:"100vh", background:"#050508", display:"flex", alignItems:"center", justifyContent:"center", padding:24, position:"relative", overflow:"hidden" },
-    glow1:  { position:"absolute", top:"-20%", right:"-10%", width:500, height:500, borderRadius:"50%", background:"radial-gradient(circle,rgba(79,142,247,0.1) 0%,transparent 70%)", pointerEvents:"none" },
-    glow2:  { position:"absolute", bottom:"-20%", left:"-10%", width:500, height:500, borderRadius:"50%", background:"radial-gradient(circle,rgba(168,85,247,0.08) 0%,transparent 70%)", pointerEvents:"none" },
-    card:   { background:"rgba(255,255,255,0.035)", backdropFilter:"blur(20px)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:20, padding:"40px 44px", width:"100%", maxWidth:460, position:"relative", zIndex:1 },
-    label:  { fontSize:12, color:"#888", fontWeight:600, marginBottom:6, letterSpacing:"0.04em", textTransform:"uppercase" },
-    wrap:   { marginBottom:18 },
-    input:  { width:"100%", background:"rgba(255,255,255,0.05)", border:"1.5px solid rgba(255,255,255,0.08)", borderRadius:10, padding:"12px 16px", color:"#e2e2f0", fontSize:14, outline:"none", fontFamily:"inherit", transition:"border-color 0.2s" },
-    select: { width:"100%", background:"#0d0d18", border:"1.5px solid rgba(255,255,255,0.08)", borderRadius:10, padding:"12px 16px", color:"#e2e2f0", fontSize:14, outline:"none", fontFamily:"inherit", appearance:"none", cursor:"pointer" },
-    btn:    { width:"100%", padding:"13px", borderRadius:10, border:"none", cursor:"pointer", fontSize:15, fontWeight:700, background:"linear-gradient(135deg,#4f8ef7,#a855f7)", color:"#fff", marginTop:8 },
-    err:    { background:"rgba(239,68,68,0.1)", border:"1px solid rgba(239,68,68,0.25)", borderRadius:8, padding:"10px 14px", color:"#f87171", fontSize:13, marginBottom:16 },
-  };
+  const bg  = "#050508";
+  const inp = { width:"100%",background:"rgba(255,255,255,0.05)",border:"1.5px solid rgba(255,255,255,0.09)",borderRadius:10,padding:"12px 16px",color:"#e2e2f0",fontSize:14,outline:"none",fontFamily:"inherit",boxSizing:"border-box",transition:"border-color 0.2s" };
+  const sel = { ...inp,background:"#0a0a14",appearance:"none",cursor:"pointer" };
+  const lbl = { fontSize:11,color:"#555",fontWeight:800,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:5,display:"block" };
+  const fo  = e=>e.target.style.borderColor="#4f8ef7";
+  const bl  = e=>e.target.style.borderColor="rgba(255,255,255,0.09)";
 
   return (
-    <div style={s.page}>
-      <div style={s.glow1}/><div style={s.glow2}/>
-      <div style={s.card}>
+    <div style={{ minHeight:"100vh",background:bg,display:"flex",alignItems:"center",justifyContent:"center",padding:24,position:"relative",overflow:"hidden" }}>
+      <div style={{ position:"absolute",top:"-20%",right:"-10%",width:500,height:500,borderRadius:"50%",background:"radial-gradient(circle,rgba(79,142,247,0.1),transparent 70%)",pointerEvents:"none" }}/>
+      <div style={{ position:"absolute",bottom:"-20%",left:"-10%",width:500,height:500,borderRadius:"50%",background:"radial-gradient(circle,rgba(168,85,247,0.08),transparent 70%)",pointerEvents:"none" }}/>
 
-        {/* Logo */}
-        <div style={{ display:"flex", alignItems:"center", gap:10, justifyContent:"center", marginBottom:28 }}>
-          <div style={{ width:42, height:42, borderRadius:11, background:"linear-gradient(135deg,#4f8ef7,#a855f7)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+      <div style={{ background:"rgba(255,255,255,0.035)",backdropFilter:"blur(20px)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:22,padding:"40px 44px",width:"100%",maxWidth:480,position:"relative",zIndex:1 }}>
+
+        <div style={{ display:"flex",alignItems:"center",gap:10,justifyContent:"center",marginBottom:20 }}>
+          <div style={{ width:42,height:42,borderRadius:11,background:"linear-gradient(135deg,#4f8ef7,#a855f7)",display:"flex",alignItems:"center",justifyContent:"center" }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
               <polyline points="22,12 18,12 15,20 9,4 6,12 2,12" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <span style={{ fontSize:22, fontWeight:800, background:"linear-gradient(90deg,#4f8ef7,#a855f7)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>Ranklify</span>
+          <span style={{ fontSize:22,fontWeight:900,background:"linear-gradient(90deg,#4f8ef7,#a855f7)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent" }}>Ranklify</span>
         </div>
 
-        <div style={{ fontSize:20, fontWeight:800, color:"#e2e2f0", marginBottom:4 }}>Welcome, {user?.name?.split(" ")[0]}! 👋</div>
-        <div style={{ color:"#666", fontSize:13, marginBottom:24, lineHeight:1.6 }}>Set your DDCET target to personalize your preparation.</div>
+        <div style={{ fontSize:21,fontWeight:900,color:"#e2e2f0",marginBottom:4 }}>Welcome, {user?.name?.split(" ")[0]}! 👋</div>
+        <div style={{ color:"#555",fontSize:13,marginBottom:24,lineHeight:1.7 }}>Set your DDCET target to personalise your prep.</div>
 
-        {err && <div style={s.err}>{err}</div>}
+        {err && <div style={{ background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.25)",borderRadius:8,padding:"10px 14px",color:"#f87171",fontSize:13,marginBottom:14 }}>{err}</div>}
 
-        <div style={s.wrap}>
-          <div style={s.label}>Target Marks (out of 200)</div>
-          <input style={s.input} type="number" min="0" max="200" placeholder="e.g. 150" value={goal}
-            onChange={e => setGoal(e.target.value)}
-            onFocus={e=>{e.target.style.borderColor="#4f8ef7"}}
-            onBlur={e=>{e.target.style.borderColor="rgba(255,255,255,0.08)"}} />
+        <label style={lbl}>Target Marks (out of 200) *</label>
+        <div style={{ marginBottom:12 }}>
+          <input style={inp} type="number" min="0" max="200" placeholder="e.g. 150" value={goal} onChange={e=>setGoal(e.target.value)} onFocus={fo} onBlur={bl}/>
         </div>
 
-        {/* Live accuracy preview */}
-        {targetAcc > 0 && (
-          <div style={{ background:"rgba(74,222,128,0.08)", border:"1px solid rgba(74,222,128,0.2)", borderRadius:10, padding:"12px 16px", marginBottom:18 }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
-              <span style={{ fontSize:12, color:"#888" }}>Target Accuracy</span>
-              <span style={{ fontSize:20, fontWeight:800, color:"#4ade80" }}>{targetAcc}%</span>
+        {acc > 0 && (
+          <div style={{ background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.2)",borderRadius:10,padding:"11px 15px",marginBottom:16 }}>
+            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4 }}>
+              <span style={{ fontSize:12,color:"#888" }}>Target Accuracy</span>
+              <span style={{ fontSize:20,fontWeight:900,color:"#4ade80" }}>{acc}%</span>
             </div>
-            <div style={{ height:5, background:"rgba(255,255,255,0.06)", borderRadius:3, overflow:"hidden" }}>
-              <div style={{ height:"100%", width:`${targetAcc}%`, background:"linear-gradient(90deg,#4ade80,#22d3ee)", borderRadius:3, transition:"width 0.3s" }} />
+            <div style={{ height:5,background:"rgba(255,255,255,0.06)",borderRadius:3,overflow:"hidden" }}>
+              <div style={{ height:"100%",width:`${acc}%`,background:"linear-gradient(90deg,#4ade80,#22d3ee)",borderRadius:3,transition:"width 0.3s" }}/>
             </div>
-            <div style={{ fontSize:11, color:"#555", marginTop:5 }}>{goal} marks out of 200 = {targetAcc}% accuracy needed</div>
+            <div style={{ fontSize:11,color:"#555",marginTop:4 }}>{goal} marks = {acc}% accuracy needed</div>
           </div>
         )}
 
-        <div style={s.wrap}>
-          <div style={s.label}>Current Diploma Branch</div>
-          <select style={s.select} value={branch} onChange={e => setBranch(e.target.value)}>
-            <option value="">Select branch...</option>
-            {BRANCHES.map(b => <option key={b} value={b}>{b}</option>)}
-          </select>
+        <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16 }}>
+          <div>
+            <label style={lbl}>Diploma Branch *</label>
+            <select style={sel} value={branch} onChange={e=>setBranch(e.target.value)} onFocus={fo} onBlur={bl}>
+              <option value="">Select…</option>
+              {BRANCHES.map(b=><option key={b}>{b}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={lbl}>Your City</label>
+            <input style={inp} placeholder="e.g. Surat" value={city} onChange={e=>setCity(e.target.value)} onFocus={fo} onBlur={bl}/>
+          </div>
         </div>
 
-        <button style={s.btn} onClick={submit}>Save and Start Preparing →</button>
+        <button style={{ width:"100%",padding:"13px",borderRadius:10,border:"none",cursor:"pointer",fontSize:15,fontWeight:700,background:"linear-gradient(135deg,#4f8ef7,#a855f7)",color:"#fff",fontFamily:"inherit" }} onClick={submit}>
+          Start Preparing →
+        </button>
       </div>
     </div>
   );
