@@ -39,8 +39,14 @@ export default function Explore() {
   const cardBg = T?"rgba(255,255,255,0.025)":"#fff";
   const cardBr = T?"rgba(255,255,255,0.07)":"#e5e7eb";
 
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("all"); // all | online | connected
+  const [search,     setSearch]     = useState("");
+  const [filter,     setFilter]     = useState("all"); // all | online | connected
+  const [refreshing, setRefreshing] = useState(false);
+
+  function handleRefresh() {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 1200);
+  }
 
   /* peer mock */
   const [pSess, setPSess]   = useState(null);
@@ -290,11 +296,17 @@ export default function Explore() {
       {/* Header */}
       <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:8}}>
         <div style={{width:44,height:44,borderRadius:12,background:"linear-gradient(135deg,#4f8ef7,#a855f7)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>👥</div>
-        <div>
+        <div style={{flex:1}}>
           <div style={{fontSize:22,fontWeight:900,color:txt}}>Explore Students</div>
           <div style={{fontSize:12,color:sub}}>Discover DDCET peers · Connect · Compete</div>
         </div>
+        <button onClick={handleRefresh}
+          style={{display:"flex",alignItems:"center",gap:7,padding:"9px 16px",borderRadius:10,border:"none",cursor:"pointer",background:T?"rgba(255,255,255,0.07)":"#f3f4f6",color:txt,fontSize:13,fontWeight:700,fontFamily:"inherit",transition:"all 0.3s"}}>
+          <span style={{display:"inline-block",animation:refreshing?"spin 0.8s linear infinite":"none",fontSize:16}}>🔄</span>
+          {refreshing?"Refreshing…":"Refresh"}
+        </button>
       </div>
+      <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
 
       {/* Privacy banner */}
       <div style={{display:"flex",alignItems:"center",gap:10,padding:"11px 16px",background:"rgba(79,142,247,0.07)",border:"1.5px solid rgba(79,142,247,0.25)",borderRadius:11,marginBottom:20,marginTop:10}}>
@@ -305,30 +317,33 @@ export default function Explore() {
       </div>
 
       {/* ── ONLINE NOW ── */}
-      {onlineSt.length>0&&(
-        <div style={{marginBottom:24}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
-            <div style={{width:10,height:10,borderRadius:"50%",background:"#4ade80",boxShadow:"0 0 10px #4ade80"}}/>
-            <span style={{fontSize:16,fontWeight:900,color:txt}}>Online Now</span>
-            <span style={{fontSize:12,color:sub}}>({onlineSt.length} active)</span>
-          </div>
-          <div style={{display:"flex",flexWrap:"wrap",gap:10}}>
+      <div style={{marginBottom:24,background:cardBg,border:`1px solid ${cardBr}`,borderRadius:14,padding:"16px 18px"}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+          <div style={{width:10,height:10,borderRadius:"50%",background:"#4ade80",boxShadow:"0 0 8px #4ade80",flexShrink:0,animation:"pulse 2s ease-in-out infinite"}}/>
+          <span style={{fontSize:15,fontWeight:900,color:txt}}>Online Students</span>
+          <span style={{fontSize:12,color:sub}}>({onlineSt.length} active)</span>
+          <style>{`@keyframes pulse{0%,100%{box-shadow:0 0 4px #4ade80}50%{box-shadow:0 0 12px #4ade80,0 0 24px #4ade8055}}`}</style>
+        </div>
+        {onlineSt.length===0?(
+          <div style={{fontSize:13,color:sub,fontStyle:"italic",padding:"8px 0"}}>No students currently online.</div>
+        ):(
+          <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
             {onlineSt.map((u,i)=>(
-              <div key={u.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 16px",background:cardBg,border:`1.5px solid ${isConnected(u.id)?"rgba(74,222,128,0.4)":cardBr}`,borderRadius:40}}>
-                <div style={{position:"relative"}}>
-                  <div style={{width:32,height:32,borderRadius:"50%",background:`linear-gradient(135deg,hsl(${i*60%360},65%,55%),hsl(${(i*60+80)%360},65%,40%))`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:800,color:"#fff"}}>{u.name[0]}</div>
-                  <div style={{position:"absolute",bottom:-1,right:-1,width:10,height:10,borderRadius:"50%",background:"#4ade80",border:`2px solid ${cardBg}`}}/>
+              <div key={u.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 14px",background:isConnected(u.id)?"rgba(74,222,128,0.07)":T?"rgba(255,255,255,0.04)":"#f9fafb",border:`1.5px solid ${isConnected(u.id)?"rgba(74,222,128,0.35)":cardBr}`,borderRadius:40}}>
+                <div style={{position:"relative",flexShrink:0}}>
+                  <div style={{width:30,height:30,borderRadius:"50%",background:`linear-gradient(135deg,hsl(${i*60%360},65%,55%),hsl(${(i*60+80)%360},65%,40%))`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:800,color:"#fff"}}>{u.name[0]}</div>
+                  <div style={{position:"absolute",bottom:-1,right:-1,width:9,height:9,borderRadius:"50%",background:"#4ade80",border:`2px solid ${cardBg}`}}/>
                 </div>
                 <div>
                   <div style={{fontSize:12,fontWeight:700,color:txt}}>{u.name}</div>
-                  <div style={{fontSize:10,color:sub}}>{u.profile?.branch}</div>
+                  <div style={{fontSize:10,color:"#4ade80",fontWeight:700}}>● Online</div>
                 </div>
-                {isConnected(u.id)&&<span style={{fontSize:10,padding:"2px 8px",borderRadius:20,background:"rgba(74,222,128,0.15)",color:"#4ade80",fontWeight:800}}>✓ Connected</span>}
+                {isConnected(u.id)&&<span style={{fontSize:10,padding:"2px 8px",borderRadius:20,background:"rgba(74,222,128,0.15)",color:"#4ade80",fontWeight:800}}>✓</span>}
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* ── Search + Filters ── */}
       <div style={{display:"flex",gap:10,marginBottom:20,flexWrap:"wrap",alignItems:"center"}}>
