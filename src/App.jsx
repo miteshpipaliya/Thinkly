@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppProvider, useApp } from "./context/AppContext";
 import Auth        from "./pages/Auth";
 import Setup       from "./pages/Setup";
@@ -9,14 +9,21 @@ import Subjects    from "./pages/Subjects";
 import UnitTests   from "./pages/UnitTests";
 import MockTest    from "./pages/MockTest";
 import Checklist   from "./pages/Checklist";
+import Explore     from "./pages/Explore";
 import Leaderboard from "./pages/Leaderboard";
 import Discussion  from "./pages/Discussion";
 import Profile     from "./pages/Profile";
 import Settings    from "./pages/Settings";
 
 function Inner() {
-  const { user } = useApp();
+  const { user, darkMode } = useApp();
   const [page, setPage] = useState("dashboard");
+
+  // Apply dark/light to body background
+  useEffect(() => {
+    document.body.style.background = darkMode ? "#050508" : "#f0f2f8";
+    document.body.style.color      = darkMode ? "#e2e2f0" : "#111";
+  }, [darkMode]);
 
   if (!user)           return <Auth />;
   if (!user.setupDone) return <Setup />;
@@ -27,6 +34,7 @@ function Inner() {
     "unit-tests":  <UnitTests />,
     "mock-tests":  <MockTest />,
     "checklist":   <Checklist />,
+    "explore":     <Explore />,
     "leaderboard": <Leaderboard />,
     "discussion":  <Discussion />,
     "profile":     <Profile />,
