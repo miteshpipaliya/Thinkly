@@ -1,310 +1,306 @@
 /**
- * AppContext.jsx — Ranklify v9 "Live Platform"
- * ─────────────────────────────────────────────
- * All localStorage keys prefixed "rkl9_" for a clean slate.
- * Per-user checklist, heartbeat, 1.5s polling, full social graph.
+ * AppContext.jsx — Ranklify (Firebase edition + Group Ready System)
+ * ─────────────────────────────────────────────────────────────────
+ * New additions (all backward compatible):
+ *   groups.ready       — {[userId]: true} — who clicked Ready
+ *   groups.quit        — {[userId]: true} — who quit mid-exam
+ *   setReady(groupId)  — mark self as ready
+ *   quitGroup(groupId) — mark self as quit + remove from group
+ *   unitResults stored under "unit_results" collection
+ *   addUnitResult(r)   — store chapter test result
+ * ─────────────────────────────────────────────────────────────────
  */
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
+import {
+  collection, doc, getDocs, setDoc, updateDoc,
+  deleteDoc, onSnapshot, query, orderBy, serverTimestamp, Timestamp,
+} from "firebase/firestore";
+import { db } from "../firebase";
 
 const Ctx = createContext(null);
 export const useApp = () => useContext(Ctx);
 
-/* ── storage ─────────────────────────────────────────────────── */
 const LS = {
-  g: (k,d) => { try { const v=localStorage.getItem(k); return v?JSON.parse(v):d; }catch{return d;} },
-  s: (k,v) => { try { localStorage.setItem(k,JSON.stringify(v)); }catch{} },
-};
-const K = {
-  session : "rkl9_session",
-  users   : "rkl9_users",
-  requests: "rkl9_requests",  // {id,from,to,status:'pending'|'accepted'|'rejected',ts}
-  dms     : "rkl9_dms",       // {id,from,to,text,ts,read}
-  gchat   : "rkl9_gchat",     // {id,userId,userName,text,channel,ts}
-  groups  : "rkl9_groups",    // mock sessions
-  invites : "rkl9_invites",   // group mock invites
-  results : "rkl9_results",
-  checks  : "rkl9_checks",    // {[userId]: {[key]:bool}}
-  dark    : "rkl9_dark",
-  online  : "rkl9_online",    // [{id,ts}]
+  g: (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  s: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
 };
 
-/* ── raw getters/setters ─────────────────────────────────────── */
-const gUsers    = ()  => LS.g(K.users,    []);
-const gReqs     = ()  => LS.g(K.requests, []);
-const gDMs      = ()  => LS.g(K.dms,      []);
-const gGchat    = ()  => LS.g(K.gchat,    []);
-const gGroups   = ()  => LS.g(K.groups,   []);
-const gInvites  = ()  => LS.g(K.invites,  []);
-const gResults  = ()  => LS.g(K.results,  []);
-const gChecks   = ()  => LS.g(K.checks,   {});
-const gOnline   = ()  => LS.g(K.online,   []).filter(h=>Date.now()-h.ts<45000);
+const col    = (name) => collection(db, name);
+const toDocs = (snap) => snap.docs.map(d => ({ id: d.id, ...d.data() }));
+const tsMs   = (v)    => v instanceof Timestamp ? v.toMillis() : (typeof v === "number" ? v : 0);
 
-/* ════════════════════════════════════════════════════════════════ */
 export function AppProvider({ children }) {
-  const [user,    setUserS]  = useState(() => LS.g(K.session, null));
-  const [users,   setUsers]  = useState(() => gUsers());
-  const [reqs,    setReqs]   = useState(() => gReqs());
-  const [dms,     setDms]    = useState(() => gDMs());
-  const [gchat,   setGchat]  = useState(() => gGchat());
-  const [groups,  setGroups] = useState(() => gGroups());
-  const [invites, setInvs]   = useState(() => gInvites());
-  const [results, setRes]    = useState(() => gResults());
-  const [checks,  setChks]   = useState(() => gChecks());
-  const [dark,    setDark]   = useState(() => LS.g(K.dark, true));
-  const [online,  setOnline] = useState(() => gOnline().map(h=>h.id));
+  const [user,        setUserS]    = useState(() => LS.g("rkl_session", null));
+  const [users,       setUsers]    = useState([]);
+  const [reqs,        setReqs]     = useState([]);
+  const [dms,         setDms]      = useState([]);
+  const [gchat,       setGchat]    = useState([]);
+  const [groups,      setGroups]   = useState([]);
+  const [invites,     setInvs]     = useState([]);
+  const [results,     setRes]      = useState([]);
+  const [unitResults, setUnitRes]  = useState([]);
+  const [online,      setOnline]   = useState([]);
+  const [dark,        setDark]     = useState(() => LS.g("rkl_dark", true));
+  const [checks,      setChks]     = useState(() => LS.g("rkl_checks", {}));
 
-  /* persist simple keys */
-  useEffect(()=>{ LS.s(K.session, user); }, [user]);
-  useEffect(()=>{ LS.s(K.dark,    dark); }, [dark]);
-  useEffect(()=>{ LS.s(K.checks,  checks); }, [checks]);
+  const userRef = useRef(user);
+  useEffect(() => { userRef.current = user; }, [user]);
 
-  /* ── heartbeat ── */
-  useEffect(()=>{
-    if (!user?.id) return;
-    const beat=()=>{
-      const prev=LS.g(K.online,[]).filter(h=>Date.now()-h.ts<45000);
-      LS.s(K.online,[...prev.filter(h=>h.id!==user.id),{id:user.id,ts:Date.now()}]);
-    };
-    beat();
-    const t=setInterval(beat,20000);
-    return()=>clearInterval(t);
-  },[user?.id]);
+  useEffect(() => { LS.s("rkl_session", user); }, [user]);
+  useEffect(() => { LS.s("rkl_dark",    dark); }, [dark]);
+  useEffect(() => { LS.s("rkl_checks",  checks); }, [checks]);
 
-  /* ── polling every 1.5 s ── */
-  useEffect(()=>{
-    const t=setInterval(()=>{
-      const nu=gUsers(); setUsers(nu);
-      setReqs(gReqs()); setDms(gDMs()); setGchat(gGchat());
-      setGroups(gGroups()); setInvs(gInvites()); setRes(gResults());
-      setOnline(gOnline().map(h=>h.id));
-      if (user?.id) {
-        const fr=nu.find(u=>u.id===user.id);
-        if(fr && JSON.stringify(fr)!==JSON.stringify(user)){
-          const u2={...fr};
-          setUserS(u2); LS.s(K.session,u2);
-        }
+  const syncSession = useCallback((freshUser) => {
+    setUserS(freshUser);
+    LS.s("rkl_session", freshUser);
+  }, []);
+
+  /* ═══════ REAL-TIME LISTENERS ═══════════════════════════════ */
+  useEffect(() => {
+    const u1 = onSnapshot(col("users"), snap => {
+      const all = toDocs(snap);
+      setUsers(all);
+      const cur = userRef.current;
+      if (cur?.id) {
+        const fresh = all.find(u => u.id === cur.id);
+        if (fresh && JSON.stringify(fresh) !== JSON.stringify(cur)) syncSession(fresh);
       }
-    },1500);
-    return()=>clearInterval(t);
-  },[user?.id]);
+    });
+    const u2 = onSnapshot(col("requests"),    snap => setReqs(toDocs(snap)));
+    const u3 = onSnapshot(query(col("gchat"), orderBy("ts","asc")), snap => setGchat(toDocs(snap)));
+    const u4 = onSnapshot(col("groups"),      snap => setGroups(toDocs(snap)));
+    const u5 = onSnapshot(col("invites"),     snap => setInvs(toDocs(snap)));
+    const u6 = onSnapshot(col("results"),     snap => setRes(toDocs(snap)));
+    const u7 = onSnapshot(col("unit_results"),snap => setUnitRes(toDocs(snap)));
+    const u8 = onSnapshot(col("online"),      snap => {
+      const now = Date.now();
+      setOnline(toDocs(snap).filter(h => now - tsMs(h.ts) < 45000).map(h => h.id));
+    });
+    return () => { u1(); u2(); u3(); u4(); u5(); u6(); u7(); u8(); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const unsub = onSnapshot(query(col("dms"), orderBy("ts","asc")), snap => setDms(toDocs(snap)));
+    return () => unsub();
+  }, [user?.id]);
+
+  /* heartbeat */
+  useEffect(() => {
+    if (!user?.id) return;
+    const beat = () => setDoc(doc(db,"online",String(user.id)),{id:user.id,ts:serverTimestamp()});
+    beat();
+    const t = setInterval(beat, 20000);
+    return () => { clearInterval(t); deleteDoc(doc(db,"online",String(user.id))).catch(()=>{}); };
+  }, [user?.id]);
 
   /* ═══════ AUTH ══════════════════════════════════════════════ */
-  function signup(email,password,name){
-    const all=gUsers();
-    if(all.find(u=>u.email===email)) return{error:"Email already registered."};
-    const nu={
-      id:Date.now(), email, password, name,
-      setupDone:false, profile:{}, socialProfile:{}, createdAt:Date.now()
-    };
-    const next=[...all,nu];
-    LS.s(K.users,next); setUsers(next);
-    setUserS(nu); LS.s(K.session,nu);
-    return{ok:true};
+  async function signup(email, password, name) {
+    const snap = await getDocs(col("users"));
+    if (toDocs(snap).find(u => u.email === email)) return { error: "Email already registered." };
+    const id = String(Date.now());
+    const nu = { id, email, password, name, setupDone:false, profile:{}, socialProfile:{}, createdAt:Date.now() };
+    await setDoc(doc(db,"users",id), nu);
+    syncSession(nu);
+    return { ok: true };
   }
 
-  function login(email,password){
-    const found=gUsers().find(u=>u.email===email&&u.password===password);
-    if(!found) return{error:"Invalid email or password."};
-    setUsers(gUsers()); setUserS(found); LS.s(K.session,found);
-    return{ok:true};
+  async function login(email, password) {
+    const snap  = await getDocs(col("users"));
+    const found = toDocs(snap).find(u => u.email===email && u.password===password);
+    if (!found) return { error: "Invalid email or password." };
+    syncSession(found);
+    return { ok: true };
   }
 
-  function logout(){ LS.s(K.session,null); setUserS(null); }
-
-  function _upsert(u2){
-    const next=gUsers().map(u=>u.id===u2.id?u2:u);
-    LS.s(K.users,next); setUsers(next);
-    setUserS(u2); LS.s(K.session,u2);
+  function logout() {
+    if (user?.id) deleteDoc(doc(db,"online",String(user.id))).catch(()=>{});
+    LS.s("rkl_session",null); setUserS(null);
   }
 
-  function completeSetup(profile){
-    // profile may contain: goal, branch, city, targetAcc, username, ddcetRank
+  async function _upsert(u2) {
+    await setDoc(doc(db,"users",String(u2.id)), u2, {merge:true});
+    syncSession(u2);
+  }
+
+  async function completeSetup(profile) {
     const { username, ddcetRank, city, ...rest } = profile;
-    const updatedSocialProfile = {
+    const updatedSP = {
       ...user.socialProfile,
-      ...(username  ? { username }  : {}),
-      ...(ddcetRank ? { ddcetRank } : {}),
-      ...(city      ? { city }      : {}),
+      ...(username  ? {username}  : {}),
+      ...(ddcetRank ? {ddcetRank} : {}),
+      ...(city      ? {city}      : {}),
     };
-    _upsert({
-      ...user,
-      setupDone: true,
-      profile: { ...user.profile, ...rest, ...(city ? { city } : {}) },
-      socialProfile: updatedSocialProfile,
-    });
+    await _upsert({ ...user, setupDone:true, profile:{...user.profile,...rest,...(city?{city}:{})}, socialProfile:updatedSP });
   }
 
-  function updateSocialProfile(sp){
-    _upsert({...user,socialProfile:{...user.socialProfile,...sp}});
+  async function updateSocialProfile(sp) {
+    await _upsert({...user, socialProfile:{...user.socialProfile,...sp}});
   }
 
-  /* ═══════ REQUESTS (peer connections) ══════════════════════ */
-  function sendRequest(toId){
-    const latest=gReqs();
-    if(latest.find(r=>r.from===user.id&&r.to===toId)) return;
-    const next=[...latest,{id:Date.now(),from:user.id,to:toId,status:"pending",ts:Date.now()}];
-    LS.s(K.requests,next); setReqs(next);
+  /* ═══════ REQUESTS ══════════════════════════════════════════ */
+  async function sendRequest(toId) {
+    if (reqs.find(r => r.from===user.id && r.to===toId)) return;
+    const id = String(Date.now());
+    await setDoc(doc(db,"requests",id), {id,from:user.id,to:toId,status:"pending",ts:Date.now()});
+  }
+  async function acceptRequest(reqId) { await updateDoc(doc(db,"requests",String(reqId)),{status:"accepted"}); }
+  async function rejectRequest(reqId) { await deleteDoc(doc(db,"requests",String(reqId))); }
+  async function cancelRequest(toId) {
+    const r = reqs.find(r=>r.from===user.id&&r.to===toId&&r.status==="pending");
+    if (r) await deleteDoc(doc(db,"requests",String(r.id)));
   }
 
-  function acceptRequest(reqId){
-    const next=gReqs().map(r=>r.id===reqId?{...r,status:"accepted"}:r);
-    LS.s(K.requests,next); setReqs(next);
-  }
+  const isConnected = (uid) => reqs.some(r=>((r.from===user?.id&&r.to===uid)||(r.from===uid&&r.to===user?.id))&&r.status==="accepted");
+  const isPending   = (uid) => reqs.some(r=>r.from===user?.id&&r.to===uid&&r.status==="pending");
+  const isIncoming  = (uid) => reqs.some(r=>r.from===uid&&r.to===user?.id&&r.status==="pending");
 
-  function rejectRequest(reqId){
-    const next=gReqs().filter(r=>r.id!==reqId);
-    LS.s(K.requests,next); setReqs(next);
-  }
-
-  function cancelRequest(toId){
-    const next=gReqs().filter(r=>!(r.from===user.id&&r.to===toId&&r.status==="pending"));
-    LS.s(K.requests,next); setReqs(next);
-  }
-
-  /* computed helpers */
-  const isConnected = (uid) => reqs.some(r=>
-    ((r.from===user?.id&&r.to===uid)||(r.from===uid&&r.to===user?.id))&&r.status==="accepted"
-  );
-  const isPending  = (uid) => reqs.some(r=>r.from===user?.id&&r.to===uid&&r.status==="pending");
-  const isIncoming = (uid) => reqs.some(r=>r.from===uid&&r.to===user?.id&&r.status==="pending");
-
-  const incomingRequests = () => reqs
-    .filter(r=>r.to===user?.id&&r.status==="pending")
-    .map(r=>({ req:r, from:gUsers().find(u=>u.id===r.from)||null }))
-    .filter(x=>x.from);
-
-  const outgoingRequests = () => reqs
-    .filter(r=>r.from===user?.id&&r.status==="pending")
-    .map(r=>({ req:r, to:gUsers().find(u=>u.id===r.to)||null }))
-    .filter(x=>x.to);
-
-  const myConnections = () => {
+  const incomingRequests = () => reqs.filter(r=>r.to===user?.id&&r.status==="pending").map(r=>({req:r,from:users.find(u=>u.id===r.from)||null})).filter(x=>x.from);
+  const outgoingRequests = () => reqs.filter(r=>r.from===user?.id&&r.status==="pending").map(r=>({req:r,to:users.find(u=>u.id===r.to)||null})).filter(x=>x.to);
+  const myConnections    = () => {
     const ids=[...new Set([
       ...reqs.filter(r=>r.to===user?.id&&r.status==="accepted").map(r=>r.from),
       ...reqs.filter(r=>r.from===user?.id&&r.status==="accepted").map(r=>r.to),
     ])];
-    return ids.map(id=>gUsers().find(u=>u.id===id)).filter(Boolean);
+    return ids.map(id=>users.find(u=>u.id===id)).filter(Boolean);
   };
 
-  /* legacy aliases used by Profile/GroupMock */
   const sendFollowRequest = sendRequest;
   const acceptFollow      = acceptRequest;
   const rejectFollow      = rejectRequest;
   const pendingRequests   = () => reqs.filter(r=>r.to===user?.id&&r.status==="pending");
-  const myFollowers       = () => reqs.filter(r=>r.to===user?.id&&r.status==="accepted").map(r=>gUsers().find(u=>u.id===r.from)).filter(Boolean);
-  const myFollowing       = () => reqs.filter(r=>r.from===user?.id&&r.status==="accepted").map(r=>gUsers().find(u=>u.id===r.to)).filter(Boolean);
+  const myFollowers       = () => reqs.filter(r=>r.to===user?.id&&r.status==="accepted").map(r=>users.find(u=>u.id===r.from)).filter(Boolean);
+  const myFollowing       = () => reqs.filter(r=>r.from===user?.id&&r.status==="accepted").map(r=>users.find(u=>u.id===r.to)).filter(Boolean);
 
   /* ═══════ DMs ═══════════════════════════════════════════════ */
-  function sendDM(toId,text){
-    const msg={id:Date.now(),from:user.id,to:toId,text,ts:Date.now(),read:false};
-    const next=[...gDMs(),msg]; LS.s(K.dms,next); setDms(next);
+  async function sendDM(toId,text) {
+    const id=String(Date.now());
+    await setDoc(doc(db,"dms",id),{id,from:user.id,to:toId,text,ts:Date.now(),read:false});
   }
-  function getDMs(withId){
-    return dms.filter(m=>(m.from===user?.id&&m.to===withId)||(m.from===withId&&m.to===user?.id)).sort((a,b)=>a.ts-b.ts);
+  function getDMs(withId) {
+    return dms.filter(m=>(m.from===user?.id&&m.to===withId)||(m.from===withId&&m.to===user?.id)).sort((a,b)=>tsMs(a.ts)-tsMs(b.ts));
   }
-  function markDMsRead(fromId){
-    const next=gDMs().map(m=>m.from===fromId&&m.to===user?.id?{...m,read:true}:m);
-    LS.s(K.dms,next); setDms(next);
+  async function markDMsRead(fromId) {
+    const toMark=dms.filter(m=>m.from===fromId&&m.to===user?.id&&!m.read);
+    await Promise.all(toMark.map(m=>updateDoc(doc(db,"dms",String(m.id)),{read:true})));
   }
-  const unreadFrom = (uid) => dms.filter(m=>m.from===uid&&m.to===user?.id&&!m.read).length;
-  const totalUnread = () => dms.filter(m=>m.to===user?.id&&!m.read).length;
+  const unreadFrom  = (uid) => dms.filter(m=>m.from===uid&&m.to===user?.id&&!m.read).length;
+  const totalUnread = ()    => dms.filter(m=>m.to===user?.id&&!m.read).length;
 
   /* ═══════ GROUP CHAT ════════════════════════════════════════ */
-  function sendGroupChat(text,channel="general"){
+  async function sendGroupChat(text,channel="general") {
     if(!text.trim()) return;
-    const msg={id:Date.now(),userId:user.id,userName:user.name,text:text.trim(),channel,ts:Date.now()};
-    const next=[...gGchat(),msg]; LS.s(K.gchat,next); setGchat(next);
+    const id=String(Date.now());
+    await setDoc(doc(db,"gchat",id),{id,userId:user.id,userName:user.name,text:text.trim(),channel,ts:Date.now()});
   }
-  function getChannelMsgs(channel){
-    return gchat.filter(m=>m.channel===channel).sort((a,b)=>a.ts-b.ts);
+  function getChannelMsgs(channel) {
+    return gchat.filter(m=>m.channel===channel).sort((a,b)=>tsMs(a.ts)-tsMs(b.ts));
   }
 
   /* ═══════ RESULTS ═══════════════════════════════════════════ */
-  function addResult(r){
-    const s={...r,userId:user?.id,userName:user?.name,id:Date.now(),date:new Date().toLocaleDateString("en-IN")};
-    const next=[s,...gResults()]; LS.s(K.results,next); setRes(next); return s;
+  async function addResult(r) {
+    const id=String(Date.now());
+    /* compute mock test sequence number for this user */
+    const userMocks=results.filter(x=>x.userId===user?.id&&x.isMock===true);
+    const mockNum=userMocks.length+1;
+    const s={...r,id,userId:user?.id,userName:user?.name,mockNum,date:new Date().toLocaleDateString("en-IN"),createdAt:Date.now()};
+    await setDoc(doc(db,"results",id),s);
+    return s;
   }
-  function addMockResult(r){ return addResult({...r,isMock:true}); }
-  function deleteMockResult(id){
-    const next=gResults().filter(r=>r.id!==id); LS.s(K.results,next); setRes(next);
+  async function addMockResult(r) { return addResult({...r,isMock:true}); }
+  async function deleteMockResult(id) { await deleteDoc(doc(db,"results",String(id))); }
+
+  /* ── unit test results ── */
+  async function addUnitResult(r) {
+    const id=String(Date.now());
+    const s={...r,id,userId:user?.id,userName:user?.name,date:new Date().toLocaleDateString("en-IN"),createdAt:Date.now()};
+    await setDoc(doc(db,"unit_results",id),s);
+    return s;
   }
 
-  /* ═══════ CHECKLIST (per user) ══════════════════════════════ */
+  /* ═══════ CHECKLIST ═════════════════════════════════════════ */
   const checklist = checks[user?.id] || {};
-  function toggleChecklist(key){
-    setChks(p=>{
-      const uc=p[user.id]||{};
-      const nx={...p,[user.id]:{...uc,[key]:!uc[key]}};
-      LS.s(K.checks,nx); return nx;
-    });
+  function toggleChecklist(key) {
+    setChks(p=>{ const uc=p[user.id]||{}; const nx={...p,[user.id]:{...uc,[key]:!uc[key]}}; LS.s("rkl_checks",nx); return nx; });
   }
 
   /* ═══════ GROUP MOCK ════════════════════════════════════════ */
-  function createGroup(seed){
-    const g={id:Date.now(),host:user.id,members:[user.id],status:"lobby",results:{},seed:seed||Date.now(),createdAt:Date.now()};
-    const next=[...gGroups(),g]; LS.s(K.groups,next); setGroups(next); return g;
+  async function createGroup(seed) {
+    const id=String(Date.now());
+    const g={id,host:user.id,members:[user.id],status:"lobby",results:{},ready:{},quit:{},seed:seed||Date.now(),createdAt:Date.now()};
+    await setDoc(doc(db,"groups",id),g);
+    return g;
   }
-  function sendGroupInvite(groupId,toId){
-    const latest=gInvites();
-    if(latest.find(i=>i.groupId===groupId&&i.to===toId)) return;
-    const next=[...latest,{id:Date.now(),groupId,from:user.id,to:toId,status:"pending",ts:Date.now()}];
-    LS.s(K.invites,next); setInvs(next);
+  async function sendGroupInvite(groupId,toId) {
+    if(invites.find(i=>i.groupId===groupId&&i.to===toId)) return;
+    const id=String(Date.now());
+    await setDoc(doc(db,"invites",id),{id,groupId,from:user.id,to:toId,status:"pending",ts:Date.now()});
   }
-  function acceptGroupInvite(inviteId){
-    const inv=gInvites().find(i=>i.id===inviteId); if(!inv) return;
-    const ni=gInvites().map(i=>i.id===inviteId?{...i,status:"accepted"}:i);
-    LS.s(K.invites,ni); setInvs(ni);
-    const ng=gGroups().map(g=>g.id===inv.groupId&&!g.members.includes(user.id)?{...g,members:[...g.members,user.id]}:g);
-    LS.s(K.groups,ng); setGroups(ng);
+  async function acceptGroupInvite(inviteId) {
+    const inv=invites.find(i=>i.id===inviteId); if(!inv) return;
+    await updateDoc(doc(db,"invites",String(inviteId)),{status:"accepted"});
+    const grp=groups.find(g=>g.id===inv.groupId);
+    if(grp&&!grp.members.includes(user.id)) {
+      await updateDoc(doc(db,"groups",String(inv.groupId)),{members:[...grp.members,user.id]});
+    }
   }
-  function rejectGroupInvite(inviteId){
-    const next=gInvites().map(i=>i.id===inviteId?{...i,status:"rejected"}:i);
-    LS.s(K.invites,next); setInvs(next);
+  async function rejectGroupInvite(inviteId) {
+    await updateDoc(doc(db,"invites",String(inviteId)),{status:"rejected"});
   }
-  function startGroupSession(groupId){
-    const ng=gGroups().map(g=>g.id===groupId?{...g,status:"running",startedAt:Date.now()}:g);
-    LS.s(K.groups,ng); setGroups(ng);
-  }
-  function submitGroupResult(groupId,result){
-    const ng=gGroups().map(g=>{
-      if(g.id!==groupId) return g;
-      const nr={...g.results,[user.id]:result};
-      return{...g,results:nr,status:g.members.every(id=>nr[id]!==undefined)?"done":g.status};
-    });
-    LS.s(K.groups,ng); setGroups(ng);
-  }
-  const myGroupInvites = () => invites.filter(i=>i.to===user?.id&&i.status==="pending");
 
-  const myResults = results.filter(r=>r.userId===user?.id);
+  /* NEW: mark self as ready */
+  async function setReady(groupId) {
+    const grp=groups.find(g=>g.id===groupId); if(!grp) return;
+    const newReady={...grp.ready,[user.id]:true};
+    await updateDoc(doc(db,"groups",String(groupId)),{ready:newReady});
+  }
+
+  async function startGroupSession(groupId) {
+    await updateDoc(doc(db,"groups",String(groupId)),{status:"running",startedAt:Date.now()});
+  }
+
+  async function submitGroupResult(groupId,result) {
+    const grp=groups.find(g=>g.id===groupId); if(!grp) return;
+    const newResults={...grp.results,[user.id]:result};
+    /* done = all non-quit members submitted */
+    const activeMembers=grp.members.filter(id=>!grp.quit?.[id]);
+    const allDone=activeMembers.every(id=>newResults[id]!==undefined);
+    await updateDoc(doc(db,"groups",String(groupId)),{results:newResults,status:allDone?"done":grp.status});
+  }
+
+  /* NEW: quit mid-exam — marks quit, removes from active set */
+  async function quitGroup(groupId) {
+    const grp=groups.find(g=>g.id===groupId); if(!grp) return;
+    const newQuit={...grp.quit,[user.id]:true};
+    /* check if remaining non-quit members all submitted — if so, mark done */
+    const activeMembers=grp.members.filter(id=>!newQuit[id]);
+    const allDone=activeMembers.length>0&&activeMembers.every(id=>grp.results?.[id]!==undefined);
+    await updateDoc(doc(db,"groups",String(groupId)),{quit:newQuit,status:allDone?"done":grp.status});
+  }
+
+  const myGroupInvites = () => invites.filter(i=>i.to===user?.id&&i.status==="pending");
+  const myResults      = results.filter(r=>r.userId===user?.id);
+  const myUnitResults  = unitResults.filter(r=>r.userId===user?.id);
   const toggleDarkMode = () => setDark(d=>!d);
 
   return (
     <Ctx.Provider value={{
-      /* state */
       user, users, reqs, dms, gchat, groups, invites,
-      results, myResults, checklist, darkMode:dark,
-      onlineIds:online,
-      /* auth */
+      results, myResults, unitResults, myUnitResults,
+      checklist, darkMode:dark, onlineIds:online,
       signup, login, logout, completeSetup, updateSocialProfile,
-      /* requests */
       sendRequest, acceptRequest, rejectRequest, cancelRequest,
       isConnected, isPending, isIncoming,
       incomingRequests, outgoingRequests, myConnections,
-      /* legacy aliases */
       sendFollowRequest, acceptFollow, rejectFollow,
       pendingRequests, myFollowers, myFollowing,
-      /* dms */
       sendDM, getDMs, markDMsRead, unreadFrom, totalUnread,
-      /* group chat */
       sendGroupChat, getChannelMsgs,
-      /* results */
-      addResult, addMockResult, deleteMockResult,
-      /* checklist */
+      addResult, addMockResult, deleteMockResult, addUnitResult,
       toggleChecklist,
-      /* group mock */
       createGroup, sendGroupInvite, acceptGroupInvite, rejectGroupInvite,
-      startGroupSession, submitGroupResult, myGroupInvites,
-      /* misc */
+      setReady, startGroupSession, submitGroupResult, quitGroup, myGroupInvites,
       toggleDarkMode,
     }}>
       {children}
