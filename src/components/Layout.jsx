@@ -9,7 +9,7 @@ const NAV = [
   { id:"unit-tests",  label:"Unit Tests",        icon:"test"    },
   { id:"mock-tests",  label:"Mock Tests",        icon:"target"  },
   { id:"group-mock",  label:"Group Mock Test",   icon:"grid"    },
-  { id:"explore",     label:"Explore Students",  icon:"search"  },
+  { id:"explore",     label:"Explore Students",  icon:"users"  },
   { id:"leaderboard", label:"Leaderboard",       icon:"trophy"  },
   { id:"discussion",  label:"Discussion Groups", icon:"chat"    },
   { id:"profile",     label:"My Profile",        icon:"user"    },
