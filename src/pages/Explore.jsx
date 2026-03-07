@@ -56,7 +56,7 @@ export default function Explore() {
 
   /* ── students ── */
   const students = users
-    .filter(u=>u.id!==user?.id && u.setupDone)
+    .filter(u=>u.id!==user?.id)
     .map(u=>({...u, isOnline:onlineIds.includes(u.id)}));
 
   const onlineSt    = students.filter(u=>u.isOnline);
