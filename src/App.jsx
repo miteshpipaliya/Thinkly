@@ -14,6 +14,7 @@ import Leaderboard from "./pages/Leaderboard";
 import Discussion  from "./pages/Discussion";
 import Profile     from "./pages/Profile";
 import Settings    from "./pages/Settings";
+import History     from "./pages/History";
 
 function Inner() {
   const { user, darkMode } = useApp();
@@ -38,6 +39,7 @@ function Inner() {
     "discussion":  <Discussion />,
     "profile":     <Profile setPage={setPage} />,
     "settings":    <Settings />,
+    "history":     <History />,
   };
 
   return (
