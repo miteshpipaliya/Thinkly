@@ -15,12 +15,14 @@ const BRANCHES = [
 export default function Auth() {
   const { signup, login } = useApp();
   const [tab,     setTab]     = useState("login");
-  const [name,    setName]    = useState("");
-  const [email,   setEmail]   = useState("");
-  const [pass,    setPass]    = useState("");
-  const [branch,  setBranch]  = useState("");
-  const [city,    setCity]    = useState("");
-  const [showPw,  setShowPw]  = useState(false);
+  const [name,      setName]      = useState("");
+  const [username,  setUsername]  = useState("");
+  const [email,     setEmail]     = useState("");
+  const [pass,      setPass]      = useState("");
+  const [branch,    setBranch]    = useState("");
+  const [city,      setCity]      = useState("");
+  const [rankGoal,  setRankGoal]  = useState("");
+  const [showPw,    setShowPw]    = useState(false);
   const [err,     setErr]     = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -46,7 +48,7 @@ export default function Auth() {
     setLoading(true);
     await new Promise(r=>setTimeout(r,350));
     const res = tab==="signup"
-      ? signup(email, pass, name)
+      ? signup(email, pass, name, { username: username.trim().toLowerCase().replace(/\s/g,""), branch, city, rankGoal })
       : login(email, pass);
     setLoading(false);
     if (res.error) setErr(res.error);
@@ -94,6 +96,17 @@ export default function Auth() {
           <label style={lbl}>Full Name *</label>
           <div style={{ marginBottom:14 }}>
             <input style={inp} placeholder="e.g. Rahul Patel" value={name} onChange={e=>setName(e.target.value)} onFocus={fo} onBlur={bl}/>
+          </div>
+
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:14 }}>
+            <div>
+              <label style={lbl}>Username *</label>
+              <input style={inp} placeholder="e.g. rahul_patel" value={username} onChange={e=>setUsername(e.target.value)} onFocus={fo} onBlur={bl}/>
+            </div>
+            <div>
+              <label style={lbl}>DDCET Rank Goal</label>
+              <input style={inp} type="number" min="1" placeholder="e.g. 100" value={rankGoal} onChange={e=>setRankGoal(e.target.value)} onFocus={fo} onBlur={bl}/>
+            </div>
           </div>
 
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:14 }}>
