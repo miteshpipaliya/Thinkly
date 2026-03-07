@@ -17,6 +17,7 @@ const NAV = [
   { id:"leaderboard", label:"Leaderboard",       icon:"trophy"  },
   { id:"discussion",  label:"Discussion Groups", icon:"chat"    },
   { id:"profile",     label:"My Profile",        icon:"user"    },
+  { id:"history",     label:"History",           icon:"history" },
   { id:"settings",    label:"Settings",          icon:"settings"},
 ];
 
