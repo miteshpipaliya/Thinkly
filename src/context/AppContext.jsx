@@ -3,15 +3,17 @@ import { createContext, useContext, useState, useEffect } from "react";
 const AppContext = createContext(null);
 
 export function AppProvider({ children }) {
-  const [user, setUser]         = useState(() => JSON.parse(localStorage.getItem("ranklify_user") || "null"));
-  const [users, setUsers]       = useState(() => JSON.parse(localStorage.getItem("ranklify_users") || "[]"));
-  const [results, setResults]   = useState(() => JSON.parse(localStorage.getItem("ranklify_results") || "[]"));
-  const [checklist, setChecklist] = useState(() => JSON.parse(localStorage.getItem("ranklify_checklist") || "{}"));
+  const [user, setUser]         = useState(() => { try { return JSON.parse(localStorage.getItem("rkl_user2") || "null"); } catch{ return null; }});
+  const [users, setUsers]       = useState(() => { try { return JSON.parse(localStorage.getItem("rkl_users2") || "[]"); } catch{ return []; }});
+  const [results, setResults]   = useState(() => { try { return JSON.parse(localStorage.getItem("rkl_results2") || "[]"); } catch{ return []; }});
+  const [checklist, setChecklist] = useState(() => { try { return JSON.parse(localStorage.getItem("rkl_checklist2") || "{}"); } catch{ return {}; }});
+  const [darkMode, setDarkMode] = useState(() => { try { return JSON.parse(localStorage.getItem("rkl_dark") !== null ? localStorage.getItem("rkl_dark") : "true"); } catch{ return true; }});
 
-  useEffect(() => { localStorage.setItem("ranklify_user",      JSON.stringify(user));      }, [user]);
-  useEffect(() => { localStorage.setItem("ranklify_users",     JSON.stringify(users));     }, [users]);
-  useEffect(() => { localStorage.setItem("ranklify_results",   JSON.stringify(results));   }, [results]);
-  useEffect(() => { localStorage.setItem("ranklify_checklist", JSON.stringify(checklist)); }, [checklist]);
+  useEffect(() => { localStorage.setItem("rkl_user2",      JSON.stringify(user));      }, [user]);
+  useEffect(() => { localStorage.setItem("rkl_users2",     JSON.stringify(users));     }, [users]);
+  useEffect(() => { localStorage.setItem("rkl_results2",   JSON.stringify(results));   }, [results]);
+  useEffect(() => { localStorage.setItem("rkl_checklist2", JSON.stringify(checklist)); }, [checklist]);
+  useEffect(() => { localStorage.setItem("rkl_dark",       JSON.stringify(darkMode));  }, [darkMode]);
 
   function signup(email, password, name) {
     if (users.find(u => u.email === email)) return { error: "Email already registered." };
@@ -38,31 +40,17 @@ export function AppProvider({ children }) {
   }
 
   function addResult(result) {
-    const r = {
-      ...result,
-      userId: user?.id,
-      userName: user?.name,
-      id: Date.now(),
-      date: new Date().toLocaleDateString("en-IN"),
-    };
+    const r = { ...result, userId: user?.id, userName: user?.name, id: Date.now(), date: new Date().toLocaleDateString("en-IN") };
     setResults(prev => [r, ...prev]);
     return r;
   }
 
-  // Add manual mock result (coaching/external)
   function addMockResult(result) {
-    const r = {
-      ...result,
-      userId: user?.id,
-      userName: user?.name,
-      id: Date.now(),
-      isMock: true,
-    };
+    const r = { ...result, userId: user?.id, userName: user?.name, id: Date.now(), isMock: true };
     setResults(prev => [r, ...prev]);
     return r;
   }
 
-  // Delete a mock result by id
   function deleteMockResult(id) {
     setResults(prev => prev.filter(r => r.id !== id));
   }
@@ -71,14 +59,16 @@ export function AppProvider({ children }) {
     setChecklist(prev => ({ ...prev, [key]: !prev[key] }));
   }
 
+  function toggleDarkMode() { setDarkMode(d => !d); }
+
   const myResults = results.filter(r => r.userId === user?.id);
 
   return (
     <AppContext.Provider value={{
-      user, users, results, myResults, checklist,
+      user, users, results, myResults, checklist, darkMode,
       signup, login, logout, completeSetup,
       addResult, addMockResult, deleteMockResult,
-      toggleChecklist
+      toggleChecklist, toggleDarkMode
     }}>
       {children}
     </AppContext.Provider>
