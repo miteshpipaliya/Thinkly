@@ -1,125 +1,75 @@
+import { useState } from "react";
 import { useApp } from "../context/AppContext";
-import { SUBJECTS } from "../data/subjects";
 
-const REVISIONS = ["Revision 1", "Revision 2", "Revision 3"];
+const BRANCHES = ["Mechanical","Civil","Electrical","Computer","Electronics","Chemical","Textile","Automobile","Production","Instrumentation"];
 
-function Checkbox({ checked, onChange, color, darkMode }) {
-  return (
-    <div onClick={onChange} style={{ width:18, height:18, borderRadius:4, border:`2px solid ${checked ? color : darkMode ? "rgba(255,255,255,0.15)" : "#ccc"}`, background:checked?color:"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, cursor:"pointer", transition:"all 0.2s" }}>
-      {checked && <svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" stroke="#fff" strokeWidth="2" fill="none" strokeLinecap="round"/></svg>}
-    </div>
-  );
-}
+export default function Settings() {
+  const { user, completeSetup, darkMode, toggleDarkMode } = useApp();
+  const [goal,   setGoal]   = useState(user?.profile?.goal   || "");
+  const [branch, setBranch] = useState(user?.profile?.branch || "");
+  const [saved,  setSaved]  = useState(false);
 
-function SubjectCard({ subj, checklist, toggleChecklist, darkMode }) {
-  const cardBg  = darkMode ? "rgba(255,255,255,0.025)" : "#fff";
-  const cardBr  = darkMode ? "rgba(255,255,255,0.07)"  : "#e5e7eb";
-  const txt     = darkMode ? "#ddd" : "#222";
-  const sub     = darkMode ? "#666" : "#999";
-  const chBg    = darkMode ? "rgba(255,255,255,0.03)"  : "#f9fafb";
-  const chBr    = darkMode ? "rgba(255,255,255,0.04)"  : "#f0f0f0";
+  const targetAcc = goal && !isNaN(parseFloat(goal)) ? Math.min(100, Math.round(parseFloat(goal)/400*100*10)/10) : 0;
 
-  // count all checkboxes (chapter + 3 revisions each)
-  const totalBoxes = subj.chapters.length * 4;
-  const doneBoxes  = subj.chapters.reduce((acc, ch) => {
-    const chKey = `${subj.id}-${ch}`;
-    let n = checklist[chKey] ? 1 : 0;
-    REVISIONS.forEach((_, ri) => { if (checklist[`${chKey}-r${ri}`]) n++; });
-    return acc + n;
-  }, 0);
-  const pct = Math.round(doneBoxes / totalBoxes * 100);
+  function save() {
+    completeSetup({ goal, branch, targetAcc });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  }
+
+  const txt    = darkMode ? "#e2e2f0" : "#111";
+  const sub    = darkMode ? "#666"    : "#888";
+  const cardBg = darkMode ? "rgba(255,255,255,0.03)"  : "#fff";
+  const cardBr = darkMode ? "rgba(255,255,255,0.07)"  : "#e5e7eb";
+  const inp    = { width:"100%", background:darkMode?"rgba(255,255,255,0.05)":"#f9fafb", border:`1.5px solid ${darkMode?"rgba(255,255,255,0.08)":"#e5e7eb"}`, borderRadius:10, padding:"11px 14px", color:txt, fontSize:14, outline:"none", fontFamily:"inherit" };
+  const lbl    = { fontSize:12, color:sub, fontWeight:600, marginBottom:6, letterSpacing:"0.04em", textTransform:"uppercase", display:"block" };
 
   return (
-    <div style={{ background:cardBg, border:`1px solid ${cardBr}`, borderRadius:14, padding:"18px 18px", marginBottom:14 }}>
-      {/* Subject header */}
-      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
-        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-          <span style={{ fontSize:20 }}>{subj.icon}</span>
-          <span style={{ fontWeight:700, color:subj.color, fontSize:15 }}>{subj.name}</span>
-        </div>
-        <span style={{ fontSize:13, fontWeight:700, color:subj.color }}>{pct}%</span>
-      </div>
-      <div style={{ height:5, background:darkMode?"rgba(255,255,255,0.06)":"#eee", borderRadius:3, marginBottom:14, overflow:"hidden" }}>
-        <div style={{ height:"100%", width:`${pct}%`, background:`linear-gradient(90deg,${subj.color},${subj.color}88)`, borderRadius:3, transition:"width 0.4s" }} />
-      </div>
+    <div style={{ maxWidth:520 }}>
+      <div style={{ fontSize:22, fontWeight:800, color:txt, marginBottom:24 }}>Settings</div>
 
-      {/* Chapters */}
-      {subj.chapters.map(ch => {
-        const chKey  = `${subj.id}-${ch}`;
-        const isDone = checklist[chKey];
-        return (
-          <div key={ch} style={{ background:chBg, border:`1px solid ${chBr}`, borderRadius:9, padding:"10px 12px", marginBottom:8 }}>
-            {/* Chapter row */}
-            <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
-              <Checkbox checked={!!isDone} onChange={()=>toggleChecklist(chKey)} color={subj.color} darkMode={darkMode} />
-              <span style={{ flex:1, fontSize:13.5, fontWeight:600, color:isDone?subj.color:txt }}>{ch}</span>
-              {isDone && <span style={{ fontSize:10, color:subj.color, fontWeight:700 }}>✓ Done</span>}
-            </div>
-            {/* Revision checkboxes */}
-            <div style={{ display:"flex", gap:14, paddingLeft:28, flexWrap:"wrap" }}>
-              {REVISIONS.map((rev, ri) => {
-                const rKey   = `${chKey}-r${ri}`;
-                const rDone  = checklist[rKey];
-                return (
-                  <div key={rev} onClick={() => toggleChecklist(rKey)}
-                    style={{ display:"flex", alignItems:"center", gap:5, cursor:"pointer" }}>
-                    <div style={{ width:14, height:14, borderRadius:3, border:`1.5px solid ${rDone?subj.color:darkMode?"rgba(255,255,255,0.15)":"#ccc"}`, background:rDone?subj.color:"transparent", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.2s", flexShrink:0 }}>
-                      {rDone && <svg width="8" height="8" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" stroke="#fff" strokeWidth="2.5" fill="none" strokeLinecap="round"/></svg>}
-                    </div>
-                    <span style={{ fontSize:11, color:rDone?subj.color:sub, fontWeight:rDone?600:400 }}>{rev}</span>
-                  </div>
-                );
-              })}
-            </div>
+      {/* Dark / Light Mode Toggle */}
+      <div style={{ background:cardBg, border:`1px solid ${cardBr}`, borderRadius:14, padding:22, marginBottom:14 }}>
+        <div style={{ fontSize:14, fontWeight:700, color:txt, marginBottom:16 }}>Appearance</div>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+          <div>
+            <div style={{ fontSize:14, color:txt, fontWeight:600 }}>{darkMode ? "🌙 Dark Mode" : "☀️ Light Mode"}</div>
+            <div style={{ fontSize:12, color:sub, marginTop:2 }}>Currently using {darkMode ? "dark" : "light"} theme</div>
           </div>
-        );
-      })}
-    </div>
-  );
-}
-
-export default function Checklist() {
-  const { checklist, toggleChecklist, darkMode } = useApp();
-  const txt = darkMode ? "#e2e2f0" : "#111";
-  const sub = darkMode ? "#666"    : "#888";
-
-  // Total overall
-  const totalBoxes = SUBJECTS.reduce((a, s) => a + s.chapters.length * 4, 0);
-  const doneBoxes  = Object.values(checklist).filter(Boolean).length;
-  const pct = Math.round(doneBoxes / totalBoxes * 100);
-
-  // Split subjects: left column = first 3, right = last 3
-  const leftSubjects  = SUBJECTS.slice(0, 3);
-  const rightSubjects = SUBJECTS.slice(3);
-
-  return (
-    <div>
-      <div style={{ fontSize:22, fontWeight:800, color:txt, marginBottom:4 }}>Subjects & Revision Checklist</div>
-      <div style={{ color:sub, fontSize:13, marginBottom:18 }}>Track chapter completion and 3 revision rounds per chapter.</div>
-
-      {/* Overall progress */}
-      <div style={{ background:darkMode?"rgba(255,255,255,0.03)":"#fff", border:`1px solid ${darkMode?"rgba(255,255,255,0.07)":"#e5e7eb"}`, borderRadius:12, padding:"16px 20px", marginBottom:22 }}>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
-          <span style={{ fontWeight:600, color:txt }}>Overall Progress</span>
-          <span style={{ color:"#4f8ef7", fontWeight:700 }}>{doneBoxes}/{totalBoxes} checkboxes · {pct}%</span>
-        </div>
-        <div style={{ height:7, background:darkMode?"rgba(255,255,255,0.06)":"#eee", borderRadius:4, overflow:"hidden" }}>
-          <div style={{ height:"100%", width:`${pct}%`, background:"linear-gradient(90deg,#4f8ef7,#a855f7)", borderRadius:4, transition:"width 0.4s" }} />
+          {/* Toggle switch */}
+          <div onClick={toggleDarkMode} style={{ width:52, height:28, borderRadius:14, background:darkMode?"linear-gradient(135deg,#4f8ef7,#a855f7)":"#ccc", cursor:"pointer", position:"relative", transition:"background 0.3s", flexShrink:0 }}>
+            <div style={{ position:"absolute", top:3, left:darkMode?26:3, width:22, height:22, borderRadius:"50%", background:"#fff", transition:"left 0.3s", boxShadow:"0 2px 6px rgba(0,0,0,0.3)" }} />
+          </div>
         </div>
       </div>
 
-      {/* Two column layout */}
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
-        <div>
-          {leftSubjects.map(subj => (
-            <SubjectCard key={subj.id} subj={subj} checklist={checklist} toggleChecklist={toggleChecklist} darkMode={darkMode} />
-          ))}
+      {/* Profile */}
+      <div style={{ background:cardBg, border:`1px solid ${cardBr}`, borderRadius:14, padding:28, marginBottom:14 }}>
+        <div style={{ fontSize:14, fontWeight:700, color:txt, marginBottom:20 }}>Update Profile</div>
+
+        <div style={{ marginBottom:16 }}>
+          <label style={lbl}>Target Marks (out of 400)</label>
+          <input style={inp} type="number" placeholder="e.g. 300" value={goal} onChange={e=>setGoal(e.target.value)}
+            onFocus={e=>{e.target.style.borderColor="#4f8ef7"}} onBlur={e=>{e.target.style.borderColor=darkMode?"rgba(255,255,255,0.08)":"#e5e7eb"}} />
+          {targetAcc > 0 && <div style={{ fontSize:12, color:"#4ade80", marginTop:5 }}>Target Accuracy: {targetAcc}%</div>}
         </div>
-        <div>
-          {rightSubjects.map(subj => (
-            <SubjectCard key={subj.id} subj={subj} checklist={checklist} toggleChecklist={toggleChecklist} darkMode={darkMode} />
-          ))}
+
+        <div style={{ marginBottom:24 }}>
+          <label style={lbl}>Diploma Branch</label>
+          <select style={{ ...inp, background:darkMode?"#0d0d18":"#f9fafb", appearance:"none", cursor:"pointer" }} value={branch} onChange={e=>setBranch(e.target.value)}>
+            <option value="">Select...</option>
+            {BRANCHES.map(b=><option key={b} value={b}>{b}</option>)}
+          </select>
         </div>
+
+        <button onClick={save} style={{ padding:"11px 24px", borderRadius:9, border:"none", cursor:"pointer", fontSize:14, fontWeight:700, background:saved?"rgba(74,222,128,0.15)":"linear-gradient(135deg,#4f8ef7,#a855f7)", color:saved?"#4ade80":"#fff", fontFamily:"inherit", transition:"all 0.3s" }}>
+          {saved ? "✓ Saved!" : "Save Changes"}
+        </button>
+      </div>
+
+      <div style={{ background:cardBg, border:`1px solid ${cardBr}`, borderRadius:14, padding:22 }}>
+        <div style={{ fontSize:14, fontWeight:700, color:txt, marginBottom:8 }}>Account</div>
+        <div style={{ fontSize:13, color:sub }}>Email: {user?.email}</div>
       </div>
     </div>
   );
