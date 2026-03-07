@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { AppProvider, useApp } from "./context/AppContext";
-import Auth from "./pages/Auth";
-import Setup from "./pages/Setup";
-import Layout from "./components/Layout";
+import Auth        from "./pages/Auth";
+import Setup       from "./pages/Setup";
+import Layout      from "./components/Layout";
+import Charli      from "./components/Charli";
 import Dashboard   from "./pages/Dashboard";
 import Subjects    from "./pages/Subjects";
 import UnitTests   from "./pages/UnitTests";
@@ -17,8 +18,8 @@ function Inner() {
   const { user } = useApp();
   const [page, setPage] = useState("dashboard");
 
-  if (!user)               return <Auth />;
-  if (!user.setupDone)     return <Setup />;
+  if (!user)           return <Auth />;
+  if (!user.setupDone) return <Setup />;
 
   const pages = {
     "dashboard":   <Dashboard setPage={setPage} />,
@@ -33,9 +34,12 @@ function Inner() {
   };
 
   return (
-    <Layout page={page} setPage={setPage}>
-      {pages[page] || <Dashboard setPage={setPage} />}
-    </Layout>
+    <>
+      <Layout page={page} setPage={setPage}>
+        {pages[page] || <Dashboard setPage={setPage} />}
+      </Layout>
+      <Charli />
+    </>
   );
 }
 
