@@ -5,14 +5,12 @@ const BRANCHES = ["Mechanical","Civil","Electrical","Computer","Electronics","Ch
 
 export default function Settings() {
   const { user, completeSetup } = useApp();
-  const [goal, setGoal]       = useState(user?.profile?.goal || "");
-  const [branch, setBranch]   = useState(user?.profile?.branch || "");
-  const [c1, setC1]           = useState(user?.profile?.college1 || "");
-  const [c2, setC2]           = useState(user?.profile?.college2 || "");
-  const [saved, setSaved]     = useState(false);
+  const [goal, setGoal]     = useState(user?.profile?.goal || "");
+  const [branch, setBranch] = useState(user?.profile?.branch || "");
+  const [saved, setSaved]   = useState(false);
 
   function save() {
-    completeSetup({ goal, branch, college1: c1, college2: c2 });
+    completeSetup({ goal, branch });
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   }
@@ -30,22 +28,12 @@ export default function Settings() {
           <input style={inp} value={goal} onChange={e=>setGoal(e.target.value)}
             onFocus={e=>{e.target.style.borderColor="#4f8ef7"}} onBlur={e=>{e.target.style.borderColor="rgba(255,255,255,0.08)"}} />
         </div>
-        <div style={{ marginBottom:16 }}>
+        <div style={{ marginBottom:24 }}>
           <label style={lbl}>Diploma Branch</label>
           <select style={{ ...inp, background:"#0d0d18", appearance:"none", cursor:"pointer" }} value={branch} onChange={e=>setBranch(e.target.value)}>
             <option value="">Select…</option>
             {BRANCHES.map(b=><option key={b} value={b}>{b}</option>)}
           </select>
-        </div>
-        <div style={{ marginBottom:16 }}>
-          <label style={lbl}>College Preference 1</label>
-          <input style={inp} value={c1} onChange={e=>setC1(e.target.value)} placeholder="e.g. L.D. College of Engineering"
-            onFocus={e=>{e.target.style.borderColor="#4f8ef7"}} onBlur={e=>{e.target.style.borderColor="rgba(255,255,255,0.08)"}} />
-        </div>
-        <div style={{ marginBottom:24 }}>
-          <label style={lbl}>College Preference 2</label>
-          <input style={inp} value={c2} onChange={e=>setC2(e.target.value)} placeholder="Optional"
-            onFocus={e=>{e.target.style.borderColor="#4f8ef7"}} onBlur={e=>{e.target.style.borderColor="rgba(255,255,255,0.08)"}} />
         </div>
         <button onClick={save}
           style={{ padding:"11px 24px", borderRadius:9, border:"none", cursor:"pointer", fontSize:14, fontWeight:700, background:saved?"rgba(74,222,128,0.15)":"linear-gradient(135deg,#4f8ef7,#a855f7)", color:saved?"#4ade80":"#fff", fontFamily:"inherit", transition:"all 0.3s" }}>
@@ -55,7 +43,7 @@ export default function Settings() {
       <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:14, padding:22, marginTop:14 }}>
         <div style={{ fontSize:14, fontWeight:700, color:"#aaa", marginBottom:8 }}>Account</div>
         <div style={{ fontSize:13, color:"#555" }}>Email: {user?.email}</div>
-        <div style={{ fontSize:12, color:"#444", marginTop:6 }}>To delete your account, contact support.</div>
+        <div style={{ fontSize:12, color:"#444", marginTop:6 }}>To delete your account, clear your browser data.</div>
       </div>
     </div>
   );
