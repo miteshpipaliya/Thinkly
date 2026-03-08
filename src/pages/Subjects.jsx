@@ -125,7 +125,9 @@ export default function Subjects() {
         <div key={subj.id} style={{ background:cardBg, border:`1px solid ${cardBr}`, borderRadius:14, marginBottom:12, overflow:"hidden" }}>
           <button onClick={() => setExpanded(expanded === subj.id ? null : subj.id)}
             style={{ width:"100%", display:"flex", alignItems:"center", gap:12, padding:"18px 22px", background:"transparent", border:"none", cursor:"pointer", textAlign:"left" }}>
-            <span style={{ fontSize:24 }}>{subj.icon}</span>
+            <div style={{ width:44,height:44,borderRadius:12,background:`${subj.color}22`,border:`1.5px solid ${subj.color}44`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
+              <span style={{ fontSize:20, color:subj.color, fontWeight:800, lineHeight:1 }}>{subj.icon}</span>
+            </div>
             <div style={{ flex:1 }}>
               <div style={{ fontSize:15, fontWeight:700, color:subj.color }}>{subj.name}</div>
               <div style={{ fontSize:12, color:sub }}>
