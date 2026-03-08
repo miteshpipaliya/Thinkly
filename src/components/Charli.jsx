@@ -202,8 +202,8 @@ export default function Charli() {
       {isOpen && (
         <div style={{
           position: "fixed", bottom: 96, right: 24, zIndex: 999,
-          width: "min(720px, calc(100vw - 240px))",
-          height: "calc(100vh - 110px)", minHeight: 600, maxHeight: "calc(100vh - 110px)",
+          width: "min(460px, calc(100vw - 48px))",
+          height: "calc(100vh - 130px)", minHeight: 480, maxHeight: 680,
           background: "linear-gradient(180deg,#0d0d1a 0%,#0a0a14 100%)",
           border: "1px solid rgba(239,68,68,0.25)",
           borderRadius: 24,
