@@ -28,12 +28,12 @@ function Inner() {
     document.body.style.color      = darkMode ? "#e2e2f0" : "#111";
   }, [darkMode]);
 
-  // Show welcome popup once per session when user first logs in
+  // Show welcome popup ONLY once — right after first ever signup
   useEffect(() => {
     if (user && user.setupDone && !prevUser.current) {
-      const key = `rkl9_welcomed_${user.id}_${new Date().toDateString()}`;
-      if (!sessionStorage.getItem(key)) {
-        sessionStorage.setItem(key, "1");
+      const key = `rkl9_firstwelcome_${user.id}`;
+      if (!localStorage.getItem(key)) {
+        localStorage.setItem(key, "1");
         setShowWelcome(true);
       }
     }
